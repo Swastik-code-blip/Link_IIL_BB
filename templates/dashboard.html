@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">🔗</div>
+        <div class="stat-num">{{ total }}</div>
+        <div class="stat-label">Total Links</div>
+    </div>
+    {% for row in by_type %}
+    <div class="stat-card {% if 'SIM' in row.card_type %}info{% elif 'DATA' in row.card_type %}success{% else %}warning{% endif %}">
+        <div class="stat-num">{{ row.cnt }}</div>
+        <div class="stat-label">{{ row.card_type }}</div>
+    </div>
+    {% endfor %}
+    <div class="stat-card warning">
+        <div class="stat-icon">🔔</div>
+        <div class="stat-num">{{ notifs|length }}</div>
+        <div class="stat-label">Pending Alerts</div>
+    </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:24px">
+    <!-- Performance Overview -->
+    <div class="card">
+        <div class="card-title">📊 Link Performance Overview</div>
+        <div id="perf-chart" style="height:200px; display:flex; align-items:flex-end; gap:12px; padding-top:12px;">
+            {% for row in by_perf %}
+            {% set max_val = by_perf|map(attribute='cnt')|max %}
+            {% set height = (row.cnt / max_val * 160)|int %}
+            {% set color = '#27ae60' if row.performance == 'Excellent' else ('#2ecc71' if row.performance == 'Good' else ('#f39c12' if row.performance == 'Poor' else '#e74c3c')) %}
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">
+                <div style="font-size:12px;font-weight:700;color:#636e72">{{ row.cnt }}</div>
+                <div style="width:100%;height:{{ height }}px;background:{{ color }};border-radius:6px 6px 0 0;transition:height 0.5s;"></div>
+                <div style="font-size:11px;color:#636e72;text-align:center">{{ row.performance or 'N/A' }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Service Providers -->
+    <div class="card">
+        <div class="card-title">📶 Service Provider Distribution</div>
+        {% set total_p = by_provider|sum(attribute='cnt') %}
+        {% for row in by_provider %}
+        {% set pct = (row.cnt / total_p * 100)|int if total_p > 0 else 0 %}
+        {% set color = '#e74c3c' if row.service_provider == 'JIO' else ('#fd79a8' if row.service_provider == 'AIRTEL' else ('#a29bfe' if row.service_provider == 'VODAFONE' else ('#fdcb6e' if row.service_provider == 'IDEA' else '#00cec9'))) %}
+        <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+                <span style="font-weight:600">{{ row.service_provider }}</span>
+                <span style="color:var(--muted)">{{ row.cnt }} ({{ pct }}%)</span>
+            </div>
+            <div style="background:#f0f0f0;border-radius:4px;height:8px;overflow:hidden">
+                <div style="width:{{ pct }}%;height:100%;background:{{ color }};border-radius:4px;"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if session.role == 'admin' %}
+<!-- State-wise breakdown -->
+<div class="card" style="margin-bottom:24px">
+    <div class="card-title">🗺️ State-wise Link Count</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+        {% for row in by_state %}
+        <a href="{{ url_for('links', state=row.state) }}" style="text-decoration:none">
+            <div style="background:{% if row.cnt > 200 %}var(--primary){% elif row.cnt > 100 %}#e67e22{% else %}var(--secondary){% endif %};
+                color:white;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;">
+                {{ row.state }}: {{ row.cnt }}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Notifications -->
+<div class="grid-2">
+    <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+            🔔 Alerts & Notifications
+            {% if notifs %}
+            <a href="{{ url_for('mark_all_read') }}" class="btn btn-sm btn-outline">Mark All Read</a>
+            {% endif %}
+        </div>
+        {% if notifs %}
+        {% for n in notifs[:8] %}
+        <div class="notif-item {{ n.type }}">
+            <div style="display:flex;justify-content:space-between;align-items:start">
+                <div>{{ n.message }}</div>
+                <a href="{{ url_for('mark_read', notif_id=n.id) }}" style="font-size:11px;color:var(--muted);white-space:nowrap;margin-left:8px">✓ Read</a>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">{{ n.created_at }}</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="text-align:center;padding:20px;color:var(--muted)">✅ No pending alerts</div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card">
+        <div class="card-title">📋 Recent Activity</div>
+        {% for act in recent_activity %}
+        <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+            <div><strong>{{ act.action }}</strong> by {{ act.user }}</div>
+            {% if act.details %}<div style="color:var(--muted);font-size:12px">{{ act.details }}</div>{% endif %}
+            <div style="color:var(--muted);font-size:11px;margin-top:2px">{{ act.created_at }}</div>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:20px;color:var(--muted)">No recent activity</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if session.role == 'admin' %}
+<!-- Send Notification (Admin) -->
+<div class="card" style="margin-top:24px">
+    <div class="card-title">📢 Send Notification to Engineers</div>
+    <form method="POST" action="{{ url_for('send_notification') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="flex:1;min-width:150px;margin:0">
+            <label>State</label>
+            <select name="state">
+                <option value="">All States</option>
+                {% for row in by_state %}
+                <option value="{{ row.state }}">{{ row.state }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="flex:3;min-width:250px;margin:0">
+            <label>Message</label>
+            <input type="text" name="message" placeholder="Enter notification message..." required>
+        </div>
+        <div class="form-group" style="margin:0">
+            <label>Type</label>
+            <select name="type">
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="danger">Urgent</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Send 📤</button>
+    </form>
+</div>
+{% endif %}
+
+{% endblock %}

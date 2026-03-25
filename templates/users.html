@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Manage Engineers{% endblock %}
+{% block content %}
+
+<div class="grid-2">
+    <!-- Add User Form -->
+    <div class="card">
+        <div class="card-title">➕ Add New Engineer</div>
+        <form method="POST" action="{{ url_for('add_user') }}">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="name" placeholder="Engineer's full name" required>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Login username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Set password" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" placeholder="engineer@db.com">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role">
+                    <option value="engineer">Engineer (State Access)</option>
+                    <option value="admin">Admin (Full Access)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Assigned State</label>
+                <select name="state">
+                    <option value="">-- Select State --</option>
+                    {% for s in all_states %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <small style="color:var(--muted);font-size:11px">Engineer can only view/edit links in this state</small>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Engineer</button>
+        </form>
+    </div>
+
+    <!-- Users List -->
+    <div class="card">
+        <div class="card-title">👥 Current Users ({{ users|length }})</div>
+        {% for user in users %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+            <div>
+                <div style="font-weight:700;font-size:14px">{{ user.name or user.username }}</div>
+                <div style="font-size:12px;color:var(--muted)">@{{ user.username }}{% if user.email %} · {{ user.email }}{% endif %}</div>
+                <div style="margin-top:4px">
+                    <span class="badge {% if user.role == 'admin' %}badge-excellent{% else %}badge-info{% endif %}">
+                        {{ user.role }}
+                    </span>
+                    {% if user.state %}
+                    <span style="font-size:11px;color:var(--muted);margin-left:4px">📍 {{ user.state }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if user.username != 'admin' %}
+            <a href="{{ url_for('delete_user', uid=user.id) }}"
+               onclick="return confirm('Delete user {{ user.username }}?')"
+               class="btn btn-danger btn-sm">Delete</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+    <div class="card-title">ℹ️ Access Control Info</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8">
+        <strong>Admin:</strong> Full access to all states, all links, can manage users, send notifications, export data<br>
+        <strong>Engineer:</strong> Can only view and edit links in their assigned state. Cannot see other states' data.<br>
+        <strong>Notifications:</strong> Engineers receive alerts for their state's links with expiring recharges.
+    </div>
+</div>
+{% endblock %}

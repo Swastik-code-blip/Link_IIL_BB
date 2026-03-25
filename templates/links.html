@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Link Management{% endblock %}
+{% block content %}
+
+<!-- Filter Bar -->
+<div class="card" style="margin-bottom:16px">
+    <form method="GET" class="filter-bar">
+        <input type="text" name="search" value="{{ filters.search }}" placeholder="🔍 Search WAN ID, Name, SIM..." style="min-width:200px">
+        {% if session.role == 'admin' %}
+        <select name="state">
+            <option value="">All States</option>
+            {% for s in all_states %}
+            <option value="{{ s.state }}" {% if s.state == filters.state %}selected{% endif %}>{{ s.state }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <select name="center">
+            <option value="">All Centers</option>
+            {% for c in all_centers %}
+            <option value="{{ c.center }}" {% if c.center == filters.center %}selected{% endif %}>{{ c.center }}</option>
+            {% endfor %}
+        </select>
+        <select name="card_type">
+            <option value="">All Types</option>
+            <option value="SIM CARD" {% if filters.card_type == 'SIM CARD' %}selected{% endif %}>SIM Card</option>
+            <option value="DATA CARD" {% if filters.card_type == 'DATA CARD' %}selected{% endif %}>Data Card</option>
+        </select>
+        <select name="provider">
+            <option value="">All Providers</option>
+            <option value="JIO" {% if filters.provider == 'JIO' %}selected{% endif %}>JIO</option>
+            <option value="AIRTEL" {% if filters.provider == 'AIRTEL' %}selected{% endif %}>AIRTEL</option>
+            <option value="VODAFONE" {% if filters.provider == 'VODAFONE' %}selected{% endif %}>VODAFONE</option>
+            <option value="IDEA" {% if filters.provider == 'IDEA' %}selected{% endif %}>IDEA</option>
+            <option value="BSNL" {% if filters.provider == 'BSNL' %}selected{% endif %}>BSNL</option>
+        </select>
+        <select name="performance">
+            <option value="">All Performance</option>
+            <option value="Excellent" {% if filters.performance == 'Excellent' %}selected{% endif %}>Excellent</option>
+            <option value="Good" {% if filters.performance == 'Good' %}selected{% endif %}>Good</option>
+            <option value="Poor" {% if filters.performance == 'Poor' %}selected{% endif %}>Poor</option>
+            <option value="Bad" {% if filters.performance == 'Bad' %}selected{% endif %}>Bad</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="{{ url_for('links') }}" class="btn btn-outline">Clear</a>
+        <a href="{{ url_for('export_csv') }}" class="btn btn-success btn-sm">📥 Export</a>
+    </form>
+</div>
+
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="card-title" style="margin:0">
+            🔗 Links 
+            <span style="font-weight:400;font-size:13px;color:var(--muted)">({{ total_count }} records)</span>
+        </div>
+        <div style="font-size:13px;color:var(--muted)">Page {{ page }} of {{ total_pages }}</div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>WAN ID</th>
+                    <th>Center</th>
+                    <th>State</th>
+                    <th>Employee</th>
+                    <th>SIM Number</th>
+                    <th>Provider</th>
+                    <th>Type</th>
+                    <th>ARC ₹</th>
+                    <th>Performance</th>
+                    <th>Recharge Due</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for link in links %}
+                <tr>
+                    <td><strong style="color:var(--primary)">{{ link.wan_id }}</strong></td>
+                    <td>{{ link.center }}</td>
+                    <td><span style="font-size:12px;color:var(--muted)">{{ link.state }}</span></td>
+                    <td>
+                        <div style="font-size:13px">{{ link.employee_name }}</div>
+                        <div style="font-size:11px;color:var(--muted)">{{ link.designation }}</div>
+                    </td>
+                    <td style="font-family:monospace;font-size:13px">{{ link.sim_number }}</td>
+                    <td>
+                        {% set prov = link.service_provider|lower %}
+                        <span class="badge badge-{{ prov }}">{{ link.service_provider }}</span>
+                    </td>
+                    <td>
+                        {% if 'SIM' in link.card_type %}
+                        <span class="badge badge-sim">SIM</span>
+                        {% elif 'DATA' in link.card_type %}
+                        <span class="badge badge-data">Data</span>
+                        {% else %}
+                        <span class="badge badge-ill">{{ link.card_type }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right">
+                        {% if link.arc %}₹{{ link.arc|int }}{% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% set perf = link.performance or 'Good' %}
+                        {% if perf == 'Excellent' %}
+                        <span class="badge badge-excellent">⭐ Excellent</span>
+                        {% elif perf == 'Good' %}
+                        <span class="badge badge-good">✅ Good</span>
+                        {% elif perf == 'Poor' %}
+                        <span class="badge badge-poor">⚠️ Poor</span>
+                        {% else %}
+                        <span class="badge badge-bad">❌ Bad</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if link.recharge_due_date %}
+                        <span style="font-size:12px;color:{% if link.recharge_due_date < '2025-07-01' %}var(--danger){% else %}var(--success){% endif %}">
+                            {{ link.recharge_due_date }}
+                        </span>
+                        {% else %}
+                        <span style="color:var(--muted);font-size:12px">Not set</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('link_detail', lid=link.id) }}" class="btn btn-secondary btn-sm">View</a>
+                        <a href="{{ url_for('edit_link', lid=link.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted)">No links found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page-1 }}&search={{ filters.search }}&state={{ filters.state }}&center={{ filters.center }}&card_type={{ filters.card_type }}&provider={{ filters.provider }}&performance={{ filters.performance }}">← Prev</a>
+        {% endif %}
+        {% for p in range([1, page-2]|max, [total_pages+1, page+3]|min) %}
+        {% if p == page %}
+        <span class="current">{{ p }}</span>
+        {% else %}
+        <a href="?page={{ p }}&search={{ filters.search }}&state={{ filters.state }}&center={{ filters.center }}&card_type={{ filters.card_type }}&provider={{ filters.provider }}&performance={{ filters.performance }}">{{ p }}</a>
+        {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}
+        <a href="?page={{ page+1 }}&search={{ filters.search }}&state={{ filters.state }}&center={{ filters.center }}&card_type={{ filters.card_type }}&provider={{ filters.provider }}&performance={{ filters.performance }}">Next →</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

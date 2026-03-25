@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Link Detail - {{ link.wan_id }}{% endblock %}
+{% block content %}
+
+<div style="display:flex;gap:12px;margin-bottom:20px">
+    <a href="{{ url_for('links') }}" class="btn btn-outline">← Back to Links</a>
+    <a href="{{ url_for('edit_link', lid=link.id) }}" class="btn btn-warning">✏️ Edit Link</a>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-title">📡 Link Information</div>
+        <table style="font-size:14px">
+            <tr><td style="padding:6px 0;color:var(--muted);width:40%"><strong>WAN ID</strong></td><td><strong style="color:var(--primary);font-size:16px">{{ link.wan_id }}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Center</strong></td><td>{{ link.center }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Location</strong></td><td>{{ link.location }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>State</strong></td><td>{{ link.state }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Division</strong></td><td>{{ link.division }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Office Type</strong></td><td>{{ link.office_type }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Card Type</strong></td><td>
+                {% if 'SIM' in link.card_type %}<span class="badge badge-sim">SIM CARD</span>
+                {% else %}<span class="badge badge-data">DATA CARD</span>{% endif %}
+            </td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>SIM Number</strong></td><td style="font-family:monospace">{{ link.sim_number }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Service Provider</strong></td><td>
+                {% set prov = link.service_provider|lower %}
+                <span class="badge badge-{{ prov }}">{{ link.service_provider }}</span>
+            </td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>ARC (Annual)</strong></td><td>
+                {% if link.arc %}<strong style="color:var(--success)">₹{{ link.arc|int }}/year</strong>{% else %}-{% endif %}
+            </td></tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-title">👤 Employee Information</div>
+        <table style="font-size:14px">
+            <tr><td style="padding:6px 0;color:var(--muted);width:40%"><strong>Employee ID</strong></td><td>{{ link.employee_id }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Name</strong></td><td><strong>{{ link.employee_name }}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Designation</strong></td><td>{{ link.designation }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Department</strong></td><td>{{ link.department }}</td></tr>
+            <tr><td style="padding:6px 0;color:var(--muted)"><strong>Status</strong></td><td>
+                <span class="badge badge-active">{{ link.emp_status }}</span>
+            </td></tr>
+        </table>
+    </div>
+</div>
+
+<div class="grid-2" style="margin-top:20px">
+    <div class="card">
+        <div class="card-title">📊 Performance & Quality</div>
+        <div style="text-align:center;padding:20px 0">
+            {% set perf = link.performance or 'Good' %}
+            {% if perf == 'Excellent' %}
+            <div style="font-size:60px">⭐</div>
+            <div style="font-size:28px;font-weight:800;color:var(--success)">Excellent</div>
+            {% elif perf == 'Good' %}
+            <div style="font-size:60px">✅</div>
+            <div style="font-size:28px;font-weight:800;color:#27ae60">Good</div>
+            {% elif perf == 'Poor' %}
+            <div style="font-size:60px">⚠️</div>
+            <div style="font-size:28px;font-weight:800;color:var(--warning)">Poor</div>
+            {% else %}
+            <div style="font-size:60px">❌</div>
+            <div style="font-size:28px;font-weight:800;color:var(--danger)">Bad</div>
+            {% endif %}
+        </div>
+        {% if link.notes %}
+        <div style="background:#f8f9fa;padding:12px;border-radius:8px;font-size:13px">
+            <strong>Notes:</strong><br>{{ link.notes }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-title">💰 Billing & Recharge</div>
+        <table style="font-size:14px">
+            <tr><td style="padding:8px 0;color:var(--muted);width:50%"><strong>Billing Date</strong></td>
+                <td>{{ link.billing_date or '<span style="color:var(--muted)">Not set</span>' }}</td></tr>
+            <tr><td style="padding:8px 0;color:var(--muted)"><strong>Billing Amount</strong></td>
+                <td>{% if link.billing_amount %}<strong style="color:var(--success)">₹{{ link.billing_amount }}</strong>{% else %}<span style="color:var(--muted)">Not set</span>{% endif %}</td></tr>
+            <tr><td style="padding:8px 0;color:var(--muted)"><strong>Last Recharge</strong></td>
+                <td>{{ link.recharge_date or '<span style="color:var(--muted)">Not set</span>' }}</td></tr>
+            <tr><td style="padding:8px 0;color:var(--muted)"><strong>Recharge Due</strong></td>
+                <td>{% if link.recharge_due_date %}
+                    <strong style="color:var(--danger)">{{ link.recharge_due_date }}</strong>
+                    {% else %}<span style="color:var(--muted)">Not set</span>{% endif %}</td></tr>
+        </table>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+            Last updated: {{ link.last_updated or 'Never' }}<br>
+            Updated by: {{ link.updated_by or '-' }}
+        </div>
+    </div>
+</div>
+
+<!-- Activity History -->
+{% if history %}
+<div class="card" style="margin-top:20px">
+    <div class="card-title">📋 Edit History</div>
+    {% for act in history %}
+    <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span style="font-weight:600">{{ act.action }}</span> by {{ act.user }}
+        {% if act.details %} — <span style="color:var(--muted)">{{ act.details }}</span>{% endif %}
+        <span style="float:right;color:var(--muted);font-size:11px">{{ act.created_at }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
