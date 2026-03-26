@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Edit User{% endblock %}
+{% block page_title %}<i class="fas fa-user-pen" style="color:var(--blue);margin-right:8px"></i>Edit User{% endblock %}
+{% block content %}
+<div style="margin-bottom:14px"><a href="/users" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back to Users</a></div>
+<div style="max-width:600px">
+<div class="card">
+  <div class="card-header">
+    <span><i class="fas fa-user" style="color:var(--blue);margin-right:7px"></i>Editing: <b>{{ user['username'] }}</b></span>
+    <span class="badge {{ 'b-red' if user['role']=='admin' else 'b-gray' }}">{{ user['role'].title() }}</span>
+  </div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-row form-row-2" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">Full Name *</label>
+          <input type="text" name="full_name" class="form-control" required value="{{ user['full_name'] or '' }}"></div>
+        <div class="form-group"><label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" value="{{ user['email'] or '' }}" placeholder="email@dainikbhaskar.com"></div>
+      </div>
+      <div class="form-row form-row-2" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">Role</label>
+          <select name="role" class="form-control">
+            <option value="engineer" {{ 'selected' if user['role']=='engineer' }}>🔧 Engineer</option>
+            <option value="admin" {{ 'selected' if user['role']=='admin' }}>👑 Admin</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">State (for Engineer)</label>
+          <select name="state" class="form-control">
+            <option value="">-- No State (Admin) --</option>
+            {% for code,name in [('GJ','Gujarat'),('MH','Maharashtra'),('RJ','Rajasthan'),('HR','Haryana'),('NCR','NCR Delhi'),('MPCG','MP & CG'),('BR&JH','Bihar & Jharkhand'),('CPH','Chandigarh Punjab HP')] %}
+            <option value="{{ code }}" {{ 'selected' if user['state']==code }}>{{ code }} — {{ name }}</option>{% endfor %}
+          </select></div>
+      </div>
+      <div class="card" style="background:#f7fafc;border:1px dashed var(--border);margin-bottom:14px">
+        <div class="card-body" style="padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px"><i class="fas fa-lock"></i> CHANGE PASSWORD (leave blank to keep current)</div>
+          <div class="form-group"><label class="form-label">New Password</label>
+            <input type="password" name="new_password" class="form-control" placeholder="Leave blank to keep current password"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn btn-blue"><i class="fas fa-floppy-disk"></i> Save Changes</button>
+        <a href="/users" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+{% endblock %}

@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Naya Link Add{% endblock %}
-{% block page_title %}<i class="fas fa-plus-circle" style="color:var(--green);margin-right:8px"></i>Naya Link Add Karein{% endblock %}
+{% block page_title %}<i class="fas fa-plus-circle" style="color:var(--green);margin-right:8px"></i>Add New Link{% endblock %}
 
 {% block content %}
 <div style="margin-bottom:14px"><a href="/links" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a></div>
 
 <div class="card">
-  <div class="card-header"><i class="fas fa-plug" style="color:var(--red);margin-right:7px"></i>New Link Details Bharein</div>
+  <div class="card-header"><i class="fas fa-plug" style="color:var(--red);margin-right:7px"></i>Fill in New Link Details</div>
   <div class="card-body">
     <form method="POST">
 
@@ -23,7 +23,7 @@
         <div class="form-group">
           <label class="form-label">State *</label>
           <select name="state" class="form-control" required>
-            <option value="">-- State chunein --</option>
+            <option value="">-- Select State --</option>
             {% for s in all_states %}
             <option value="{{ s['state'] }}" {{ 'selected' if session.get('state')==s['state'] }}>{{ s['state'] }}</option>
             {% endfor %}
@@ -173,11 +173,11 @@
       <!-- Remark -->
       <div class="form-group mb">
         <label class="form-label">Remark</label>
-        <input type="text" name="remark" class="form-control" placeholder="Koi bhi note ya remark...">
+        <input type="text" name="remark" class="form-control" placeholder="Any note or remark...">
       </div>
 
       <div style="display:flex;gap:10px">
-        <button type="submit" class="btn btn-green"><i class="fas fa-floppy-disk"></i> Link Save Karein</button>
+        <button type="submit" class="btn btn-green"><i class="fas fa-floppy-disk"></i> Save Link</button>
         <a href="/links" class="btn btn-outline"><i class="fas fa-xmark"></i> Cancel</a>
       </div>
     </form>

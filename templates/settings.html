@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}<i class="fas fa-sliders" style="color:var(--blue);margin-right:8px"></i>System Settings{% endblock %}
+{% block content %}
+<form method="POST">
+<div class="g2 mb">
+  <!-- SMTP Email Settings -->
+  <div class="card">
+    <div class="card-header" style="background:linear-gradient(90deg,#d1ecf1,#fff)">
+      <span><i class="fas fa-envelope" style="color:var(--blue);margin-right:7px"></i>Email (SMTP) Settings</span>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500">
+        <input type="checkbox" name="smtp_enabled" value="1" {{ 'checked' if cfg.get('smtp_enabled')=='1' }} style="width:16px;height:16px;accent-color:var(--blue)">
+        Enable Email Alerts
+      </label>
+    </div>
+    <div class="card-body">
+      <div class="form-row form-row-2" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">SMTP Host</label>
+          <input type="text" name="smtp_host" class="form-control" value="{{ cfg.get('smtp_host','') }}" placeholder="smtp.gmail.com / smtp.office365.com"></div>
+        <div class="form-group"><label class="form-label">Port</label>
+          <input type="number" name="smtp_port" class="form-control" value="{{ cfg.get('smtp_port','587') }}"></div>
+      </div>
+      <div class="form-row form-row-2" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">SMTP Username (Email)</label>
+          <input type="text" name="smtp_user" class="form-control" value="{{ cfg.get('smtp_user','') }}" placeholder="alerts@dainikbhaskar.com"></div>
+        <div class="form-group"><label class="form-label">SMTP Password / App Password</label>
+          <input type="password" name="smtp_pass" class="form-control" value="{{ cfg.get('smtp_pass','') }}" placeholder="••••••••"></div>
+      </div>
+      <div class="form-row form-row-2" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">From Name / Email</label>
+          <input type="text" name="smtp_from" class="form-control" value="{{ cfg.get('smtp_from','') }}" placeholder="DB Link Portal <alerts@db.com>"></div>
+        <div class="form-group"><label class="form-label">Admin Notification Email</label>
+          <input type="email" name="admin_notify_email" class="form-control" value="{{ cfg.get('admin_notify_email','') }}" placeholder="it-admin@dainikbhaskar.com"></div>
+      </div>
+      <div class="form-row form-row-2" style="margin-bottom:14px">
+        <div class="form-group"><label class="form-label">Alert Days Before Renewal</label>
+          <input type="number" name="notify_days" class="form-control" value="{{ cfg.get('notify_days','30') }}" min="1" max="90"></div>
+        <div class="form-group" style="justify-content:flex-end">
+          <label class="form-label">&nbsp;</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 0">
+            <input type="checkbox" name="smtp_ssl" value="1" {{ 'checked' if cfg.get('smtp_ssl')=='1' }} style="width:16px;height:16px;accent-color:var(--blue)">
+            Use SSL (port 465)
+          </label>
+        </div>
+      </div>
+      <div style="padding:12px;background:#d1ecf1;border-radius:8px;font-size:12px;margin-bottom:14px;color:#0c5460">
+        <b>Gmail:</b> Use smtp.gmail.com port 587, enable 2FA, create App Password at myaccount.google.com/apppasswords<br>
+        <b>Office 365:</b> Use smtp.office365.com port 587, use your email and password
+      </div>
+      <!-- Test Email -->
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="text" id="testEmailAddr" class="form-control" style="max-width:240px" placeholder="test@example.com">
+        <button type="button" class="btn btn-blue btn-sm" onclick="testEmail()"><i class="fas fa-paper-plane"></i> Send Test Email</button>
+        <span id="testEmailResult" style="font-size:12px"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AD/LDAP Settings -->
+  <div class="card">
+    <div class="card-header" style="background:linear-gradient(90deg,#fde3c8,#fff)">
+      <span><i class="fas fa-server" style="color:var(--orange);margin-right:7px"></i>Active Directory / LDAP Authentication</span>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500">
+        <input type="checkbox" name="ad_enabled" value="1" {{ 'checked' if cfg.get('ad_enabled')=='1' }} style="width:16px;height:16px;accent-color:var(--orange)">
+        Enable AD Login
+      </label>
+    </div>
+    <div class="card-body">
+      <div style="padding:12px;background:#fde3c8;border-radius:8px;font-size:12px;margin-bottom:14px;color:#784212">
+        <b>How it works:</b> When AD login is enabled, users can log in with their Windows domain credentials. If the user doesn't exist in the portal, they will be auto-created as an Engineer. You can then assign their State from User Management.
+      </div>
+      <div class="form-row form-row-2" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">AD Server IP / Hostname</label>
+          <input type="text" name="ad_server" class="form-control" value="{{ cfg.get('ad_server','') }}" placeholder="192.168.1.10 or dc.company.com"></div>
+        <div class="form-group"><label class="form-label">Port</label>
+          <input type="number" name="ad_port" class="form-control" value="{{ cfg.get('ad_port','389') }}"></div>
+      </div>
+      <div class="form-row form-row-2" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">Domain Name</label>
+          <input type="text" name="ad_domain" class="form-control" value="{{ cfg.get('ad_domain','') }}" placeholder="DAINIKBHASKAR or dainikbhaskar.com"></div>
+        <div class="form-group"><label class="form-label">Base DN</label>
+          <input type="text" name="ad_base_dn" class="form-control" value="{{ cfg.get('ad_base_dn','') }}" placeholder="DC=dainikbhaskar,DC=com"></div>
+      </div>
+      <div class="form-row form-row-2" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">Bind User (optional)</label>
+          <input type="text" name="ad_bind_user" class="form-control" value="{{ cfg.get('ad_bind_user','') }}" placeholder="svc-account@dainikbhaskar.com"></div>
+        <div class="form-group"><label class="form-label">Bind Password</label>
+          <input type="password" name="ad_bind_pass" class="form-control" value="{{ cfg.get('ad_bind_pass','') }}" placeholder="••••••••"></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" name="ad_use_ssl" value="1" {{ 'checked' if cfg.get('ad_use_ssl')=='1' }} style="width:16px;height:16px;accent-color:var(--orange)">
+          Use LDAPS (SSL, port 636)
+        </label>
+      </div>
+      <!-- Test AD -->
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="adTestUser" class="form-control" style="max-width:150px" placeholder="username">
+        <input type="password" id="adTestPass" class="form-control" style="max-width:150px" placeholder="password">
+        <button type="button" class="btn btn-orange btn-sm" onclick="testAD()"><i class="fas fa-plug"></i> Test AD Login</button>
+        <span id="testADResult" style="font-size:12px"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center">
+  <button type="submit" class="btn btn-red" style="padding:12px 40px;font-size:15px"><i class="fas fa-floppy-disk"></i> Save All Settings</button>
+</div>
+</form>
+
+<script>
+function testEmail(){
+  const to = document.getElementById('testEmailAddr').value;
+  const res = document.getElementById('testEmailResult');
+  res.textContent = 'Sending...'; res.style.color = '#718096';
+  fetch('/api/test-email', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({to})})
+    .then(r=>r.json()).then(d=>{
+      res.textContent = d.msg;
+      res.style.color = d.ok ? '#27ae60' : '#e74c3c';
+    });
+}
+function testAD(){
+  const username = document.getElementById('adTestUser').value;
+  const password = document.getElementById('adTestPass').value;
+  const res = document.getElementById('testADResult');
+  res.textContent = 'Testing...'; res.style.color = '#718096';
+  fetch('/api/test-ad', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password})})
+    .then(r=>r.json()).then(d=>{
+      res.textContent = d.msg;
+      res.style.color = d.ok ? '#27ae60' : '#e74c3c';
+    });
+}
+</script>
+{% endblock %}

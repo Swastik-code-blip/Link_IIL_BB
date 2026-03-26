@@ -155,7 +155,7 @@ select.form-control{cursor:pointer}
 
   <div class="sb-section">Link Management</div>
   <a class="sb-link {% if request.endpoint=='add_link' %}active{% endif %}" href="/links/add">
-    <i class="fas fa-plus-circle"></i><span>Naya Link Add</span></a>
+    <i class="fas fa-plus-circle"></i><span>Add New Link</span></a>
   <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='ILL' %}active{% endif %}" href="/links?category=ILL">
     <i class="fas fa-server"></i><span>ILL (Leased Line)</span></a>
   <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='BB' %}active{% endif %}" href="/links?category=BB">
@@ -165,7 +165,7 @@ select.form-control{cursor:pointer}
   <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='P2P' %}active{% endif %}" href="/links?category=P2P">
     <i class="fas fa-arrow-right-arrow-left"></i><span>P2P Links</span></a>
   <a class="sb-link {% if request.endpoint=='links' and not request.args.get('category') %}active{% endif %}" href="/links">
-    <i class="fas fa-list"></i><span>Sab Links</span></a>
+    <i class="fas fa-list"></i><span>All Links</span></a>
   <a class="sb-link {% if request.endpoint=='sim_cards' %}active{% endif %}" href="/sim-cards">
     <i class="fas fa-sim-card"></i><span>SIM / Data Cards</span></a>
 
@@ -180,6 +180,8 @@ select.form-control{cursor:pointer}
   <div class="sb-section">Admin</div>
   <a class="sb-link {% if request.endpoint=='users' %}active{% endif %}" href="/users">
     <i class="fas fa-users-gear"></i><span>User Management</span></a>
+  <a class="sb-link {% if request.endpoint=='settings' %}active{% endif %}" href="/settings">
+    <i class="fas fa-sliders"></i><span>Settings</span></a>
   {% endif %}
 
   <div style="flex:1"></div>

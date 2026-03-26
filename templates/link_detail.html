@@ -1,184 +1,137 @@
 {% extends 'base.html' %}
 {% block title %}Link Detail{% endblock %}
 {% block page_title %}<i class="fas fa-circle-info" style="color:var(--red);margin-right:8px"></i>Link Detail{% endblock %}
-
 {% block content %}
-<div style="margin-bottom:14px;display:flex;gap:8px">
+<div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
   <a href="/links" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
-  <span class="badge {{ 'b-green' if link['link_status']=='Active' else 'b-red' }}" style="padding:6px 14px;font-size:13px">
-    {{ link['link_status'] }}
-  </span>
+  <span class="badge {{ 'b-green' if link['link_status']=='Active' else 'b-red' }}" style="padding:6px 14px;font-size:13px">{{ link['link_status'] }}</span>
   <span class="badge b-gray" style="padding:6px 14px;font-size:13px">{{ link['category'] }}</span>
+  {% if can_edit %}<span class="badge b-green" style="padding:6px 14px;font-size:13px"><i class="fas fa-pen"></i> Edit Access</span>{% endif %}
 </div>
 
+<!-- EDIT FORM (shown when can_edit) -->
+{% if can_edit %}
+<div class="card mb" style="border-left:4px solid var(--red)">
+  <div class="card-header" style="cursor:pointer" onclick="toggleEdit()">
+    <span><i class="fas fa-pen" style="color:var(--red);margin-right:7px"></i>Edit Link Information</span>
+    <span id="editToggleIcon"><i class="fas fa-chevron-down"></i></span>
+  </div>
+  <div id="editFormWrap" style="display:none">
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="action" value="edit_link">
+        <div class="form-row form-row-3" style="margin-bottom:12px">
+          <div class="form-group"><label class="form-label">Link Status</label>
+            <select name="link_status" class="form-control">{% for s in ['Active','Inactive','Suspended','Terminated'] %}<option {{ 'selected' if link['link_status']==s }}>{{ s }}</option>{% endfor %}</select></div>
+          <div class="form-group"><label class="form-label">ISP Name</label>
+            <input type="text" name="isp_name" class="form-control" value="{{ link['isp_name'] or '' }}"></div>
+          <div class="form-group"><label class="form-label">Link Type</label>
+            <input type="text" name="link_type" class="form-control" value="{{ link['link_type'] or '' }}"></div>
+        </div>
+        <div class="form-row form-row-3" style="margin-bottom:12px">
+          <div class="form-group"><label class="form-label">Engineer Location</label>
+            <input type="text" name="engineer_location" class="form-control" value="{{ link['engineer_location'] or '' }}"></div>
+          <div class="form-group"><label class="form-label">Link Location</label>
+            <input type="text" name="link_location" class="form-control" value="{{ link['link_location'] or '' }}"></div>
+          <div class="form-group"><label class="form-label">Office Type</label>
+            <select name="office_type" class="form-control">{% for o in ['','City Office','Press','Corporate','Editorial','Branch'] %}<option {{ 'selected' if link['office_type']==o }}>{{ o }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="form-row form-row-3" style="margin-bottom:12px">
+          <div class="form-group"><label class="form-label">Speed (Mbps)</label>
+            <input type="text" name="speed_mbps" class="form-control" value="{{ link['speed_mbps'] or '' }}"></div>
+          <div class="form-group"><label class="form-label">Annual Cost (₹)</label>
+            <input type="number" name="yearly_cost" class="form-control" value="{{ link['yearly_cost'] or 0 }}"></div>
+          <div class="form-group"><label class="form-label">Media Type</label>
+            <select name="media_type" class="form-control">{% for m in ['','Fiber','RF','Copper','Wireless'] %}<option {{ 'selected' if link['media_type']==m }}>{{ m }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="form-row form-row-3" style="margin-bottom:12px">
+          <div class="form-group"><label class="form-label">Circuit ID</label>
+            <input type="text" name="circuit_id" class="form-control" value="{{ link['circuit_id'] or '' }}"></div>
+          <div class="form-group"><label class="form-label">IP Address</label>
+            <input type="text" name="link_ip" class="form-control" value="{{ link['link_ip'] or '' }}"></div>
+          <div class="form-group"><label class="form-label">Billing Cycle</label>
+            <select name="billing_cycle" class="form-control">{% for b in ['','Monthly','Quarterly','Half Yearly','Yearly'] %}<option {{ 'selected' if link['billing_cycle']==b }}>{{ b }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="form-row form-row-3" style="margin-bottom:12px">
+          <div class="form-group"><label class="form-label">Next Renewal Date</label>
+            <input type="text" name="next_renewal_date" class="form-control" value="{{ link['next_renewal_date'] or '' }}" placeholder="DD/MM/YYYY"></div>
+          <div class="form-group"><label class="form-label">Payment Location</label>
+            <select name="payment_location" class="form-control">{% for p in ['','Local','State','Corporate'] %}<option {{ 'selected' if link['payment_location']==p }}>{{ p }}</option>{% endfor %}</select></div>
+          <div class="form-group"><label class="form-label">Payment Status</label>
+            <select name="payment_status" class="form-control">{% for p in ['','Done','Pending','Processing','Overdue'] %}<option {{ 'selected' if link['payment_status']==p }}>{{ p }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:12px">
+          <div class="form-group"><label class="form-label">PO Number</label>
+            <input type="text" name="po_number" class="form-control" value="{{ link['po_number'] or '' }}"></div>
+          <div class="form-group"><label class="form-label">PO Date</label>
+            <input type="text" name="po_date" class="form-control" value="{{ link['po_date'] or '' }}"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px"><label class="form-label">Postal Address</label>
+          <input type="text" name="postal_address" class="form-control" value="{{ link['postal_address'] or '' }}"></div>
+        <div class="form-group" style="margin-bottom:14px"><label class="form-label">Remark</label>
+          <input type="text" name="remark" class="form-control" value="{{ link['remark'] or '' }}"></div>
+        <button type="submit" class="btn btn-red"><i class="fas fa-floppy-disk"></i> Save All Changes</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="g2 mb">
-  <!-- Info Card -->
+  <!-- Info View -->
   <div class="card">
     <div class="card-header"><i class="fas fa-server" style="color:var(--blue);margin-right:7px"></i>Link Information</div>
     <div class="card-body-p0">
       <table class="tbl">
-        {% set info = [
-          ('State', link['state']),
-          ('Engineer Location', link['engineer_location']),
-          ('Link Location', link['link_location']),
-          ('Office Type', link['office_type']),
-          ('ISP Name', link['isp_name']),
-          ('Link Type', link['link_type']),
-          ('Category', link['category']),
-          ('Circuit ID', link['circuit_id']),
-          ('Media Type', link['media_type']),
-          ('Speed', (link['speed_mbps'] or '') ~ ' Mbps'),
-          ('Annual Cost', '₹' ~ "{:,.0f}".format(link['yearly_cost'] or 0)),
-          ('IP Address', link['link_ip']),
-          ('Billing Cycle', link['billing_cycle']),
-          ('Next Renewal', link['next_renewal_date']),
-          ('PO Number', link['po_number']),
-          ('PO Date', link['po_date']),
-          ('Payment Location', link['payment_location']),
-          ('Payment Status', link['payment_status']),
-          ('Last Updated', link['updated_at']),
-        ] %}
-        {% for label, val in info %}
-        {% if val and val not in ('', '₹0', '0 Mbps') %}
+        {% for label, val in [
+          ('State',link['state']),('Engineer Location',link['engineer_location']),
+          ('Link Location',link['link_location']),('Office Type',link['office_type']),
+          ('ISP Name',link['isp_name']),('Link Type',link['link_type']),('Category',link['category']),
+          ('Circuit ID',link['circuit_id']),('Media Type',link['media_type']),
+          ('Speed','%s Mbps'%link['speed_mbps'] if link['speed_mbps'] else ''),
+          ('Annual Cost','₹{:,.0f}'.format(link['yearly_cost'] or 0)),
+          ('IP Address',link['link_ip']),('Billing Cycle',link['billing_cycle']),
+          ('Next Renewal',link['next_renewal_date']),('PO Number',link['po_number']),
+          ('PO Date',link['po_date']),('Payment Location',link['payment_location']),
+          ('Payment Status',link['payment_status']),('Last Updated',link['updated_at'])] %}
+        {% if val %}
         <tr>
-          <td style="color:var(--muted);font-size:12px;font-weight:600;width:42%;padding:9px 16px;border-bottom:1px solid var(--border)">{{ label }}</td>
-          <td style="font-weight:600;font-size:13px;padding:9px 16px;border-bottom:1px solid var(--border)">{{ val }}</td>
+          <td style="color:var(--muted);font-size:12px;font-weight:600;width:42%;padding:8px 16px;border-bottom:1px solid var(--border)">{{ label }}</td>
+          <td style="font-weight:600;font-size:13px;padding:8px 16px;border-bottom:1px solid var(--border)">{{ val }}</td>
         </tr>
-        {% endif %}
-        {% endfor %}
+        {% endif %}{% endfor %}
       </table>
-      {% if link['postal_address'] %}
-      <div style="padding:12px 16px;background:#f7fafc;margin:0;border-top:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px"><i class="fas fa-location-dot" style="color:var(--red)"></i> ADDRESS</div>
-        <div style="font-size:13px">{{ link['postal_address'] }}</div>
-      </div>
-      {% endif %}
-      {% if link['remark'] %}
-      <div style="padding:12px 16px;background:#fff8e1;border-top:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px"><i class="fas fa-sticky-note" style="color:var(--orange)"></i> REMARK</div>
-        <div style="font-size:13px">{{ link['remark'] }}</div>
-      </div>
-      {% endif %}
+      {% if link['postal_address'] %}<div style="padding:12px 16px;background:#f7fafc;border-top:1px solid var(--border)"><span style="font-size:11px;font-weight:700;color:var(--muted)"><i class="fas fa-location-dot" style="color:var(--red)"></i> ADDRESS: </span><span style="font-size:13px">{{ link['postal_address'] }}</span></div>{% endif %}
+      {% if link['remark'] %}<div style="padding:12px 16px;background:#fff8e1;border-top:1px solid var(--border)"><span style="font-size:11px;font-weight:700;color:var(--muted)"><i class="fas fa-sticky-note" style="color:var(--orange)"></i> REMARK: </span><span style="font-size:13px">{{ link['remark'] }}</span></div>{% endif %}
     </div>
   </div>
 
-  <div>
-    <!-- Performance Widget -->
-    <div class="card mb">
-      <div class="card-header"><i class="fas fa-gauge" style="color:var(--green);margin-right:7px"></i>Performance Update</div>
-      <div class="card-body">
-        {% set p = link['performance'] or 'Good' %}
-        <div style="text-align:center;padding:10px 0 18px">
-          <div style="font-size:50px">{{ '🟢' if p=='Excellent' else '🔵' if p=='Good' else '🟡' if p=='Poor' else '🔴' }}</div>
-          <div class="perf-{{ p }}" style="font-size:22px;margin-top:6px">{{ p }}</div>
-          <div style="font-size:11px;color:var(--muted)">Current Performance</div>
+  <!-- Performance -->
+  <div class="card">
+    <div class="card-header"><i class="fas fa-gauge" style="color:var(--green);margin-right:7px"></i>Performance</div>
+    <div class="card-body">
+      {% set p = link['performance'] or 'Good' %}
+      <div style="text-align:center;padding:10px 0 18px">
+        <div style="font-size:52px">{{ '🟢' if p=='Excellent' else '🔵' if p=='Good' else '🟡' if p=='Poor' else '🔴' }}</div>
+        <div class="perf-{{ p }}" style="font-size:22px;margin-top:6px">{{ p }}</div>
+        <div style="font-size:11px;color:var(--muted)">Current Performance</div>
+      </div>
+      <form method="POST">
+        <input type="hidden" name="action" value="set_performance">
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Update Performance</label>
+          <select name="performance" class="form-control">
+            {% for opt,icon in [('Excellent','⭐'),('Good','👍'),('Poor','⚠️'),('Bad','❌')] %}
+            <option value="{{ opt }}" {{ 'selected' if p==opt }}>{{ icon }} {{ opt }}</option>{% endfor %}
+          </select>
         </div>
-        <form method="POST">
-          <input type="hidden" name="action" value="set_performance">
-          <div class="form-group" style="margin-bottom:10px">
-            <label class="form-label">Performance Set Karein</label>
-            <select name="performance" class="form-control">
-              <option value="Excellent" {{ 'selected' if p=='Excellent' }}>⭐ Excellent</option>
-              <option value="Good" {{ 'selected' if p=='Good' }}>👍 Good</option>
-              <option value="Poor" {{ 'selected' if p=='Poor' }}>⚠️ Poor</option>
-              <option value="Bad" {{ 'selected' if p=='Bad' }}>❌ Bad</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:12px">
-            <label class="form-label">Note (optional)</label>
-            <input type="text" name="note" class="form-control" placeholder="Performance ke baare mein note...">
-          </div>
-          <button type="submit" class="btn btn-green" style="width:100%"><i class="fas fa-floppy-disk"></i> Save Performance</button>
-        </form>
-      </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">Note (optional)</label>
+          <input type="text" name="note" class="form-control" placeholder="Note about performance...">
+        </div>
+        <button type="submit" class="btn btn-green" style="width:100%"><i class="fas fa-floppy-disk"></i> Save Performance</button>
+      </form>
     </div>
-
-    <!-- Admin Edit Form -->
-    {% if session.get('role') == 'admin' %}
-    <div class="card">
-      <div class="card-header"><i class="fas fa-pen" style="color:var(--blue);margin-right:7px"></i>Edit Link (Admin)</div>
-      <div class="card-body">
-        <form method="POST">
-          <input type="hidden" name="action" value="edit_link">
-          <div class="form-row form-row-2" style="margin-bottom:10px">
-            <div class="form-group">
-              <label class="form-label">Status</label>
-              <select name="link_status" class="form-control">
-                {% for s in ['Active','Inactive','Suspended','Terminated'] %}
-                <option {{ 'selected' if link['link_status']==s }}>{{ s }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">ISP Name</label>
-              <input type="text" name="isp_name" class="form-control" value="{{ link['isp_name'] or '' }}">
-            </div>
-          </div>
-          <div class="form-row form-row-2" style="margin-bottom:10px">
-            <div class="form-group">
-              <label class="form-label">Link Type</label>
-              <input type="text" name="link_type" class="form-control" value="{{ link['link_type'] or '' }}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Speed (Mbps)</label>
-              <input type="text" name="speed_mbps" class="form-control" value="{{ link['speed_mbps'] or '' }}">
-            </div>
-          </div>
-          <div class="form-row form-row-2" style="margin-bottom:10px">
-            <div class="form-group">
-              <label class="form-label">Annual Cost (₹)</label>
-              <input type="number" name="yearly_cost" class="form-control" value="{{ link['yearly_cost'] or 0 }}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Next Renewal Date</label>
-              <input type="text" name="next_renewal_date" class="form-control" value="{{ link['next_renewal_date'] or '' }}">
-            </div>
-          </div>
-          <div class="form-row form-row-2" style="margin-bottom:10px">
-            <div class="form-group">
-              <label class="form-label">Billing Cycle</label>
-              <select name="billing_cycle" class="form-control">
-                {% for opt in ['','Monthly','Quarterly','Half Yearly','Yearly'] %}
-                <option {{ 'selected' if link['billing_cycle']==opt }}>{{ opt }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Payment Status</label>
-              <select name="payment_status" class="form-control">
-                {% for opt in ['','Done','Pending','Processing','Overdue'] %}
-                <option {{ 'selected' if link['payment_status']==opt }}>{{ opt }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-          <div class="form-row form-row-2" style="margin-bottom:10px">
-            <div class="form-group">
-              <label class="form-label">IP Address</label>
-              <input type="text" name="link_ip" class="form-control" value="{{ link['link_ip'] or '' }}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Circuit ID</label>
-              <input type="text" name="circuit_id" class="form-control" value="{{ link['circuit_id'] or '' }}">
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:12px">
-            <label class="form-label">Media Type</label>
-            <select name="media_type" class="form-control">
-              {% for opt in ['','Fiber','RF','Copper','Wireless'] %}
-              <option {{ 'selected' if link['media_type']==opt }}>{{ opt }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:12px">
-            <label class="form-label">Remark</label>
-            <input type="text" name="remark" class="form-control" value="{{ link['remark'] or '' }}">
-          </div>
-          <button type="submit" class="btn btn-red" style="width:100%"><i class="fas fa-floppy-disk"></i> Save Changes</button>
-        </form>
-      </div>
-    </div>
-    {% endif %}
   </div>
 </div>
 
@@ -188,21 +141,27 @@
   <div class="tbl-wrap">
     {% if history %}
     <table class="tbl">
-      <thead><tr><th>Performance</th><th>Note</th><th>Recorded By</th><th>Date & Time</th></tr></thead>
-      <tbody>
-      {% for h in history %}
-      <tr>
+      <thead><tr><th>Performance</th><th>Note</th><th>By</th><th>Date & Time</th></tr></thead>
+      <tbody>{% for h in history %}<tr>
         <td><span class="badge {{ 'b-green' if h['performance']=='Excellent' else 'b-blue' if h['performance']=='Good' else 'b-yellow' if h['performance']=='Poor' else 'b-red' }}">{{ h['performance'] }}</span></td>
-        <td>{{ h['note'] or '—' }}</td>
-        <td><b>{{ h['recorded_by'] }}</b></td>
+        <td>{{ h['note'] or '—' }}</td><td><b>{{ h['recorded_by'] }}</b></td>
         <td style="font-size:12px;color:var(--muted)">{{ h['recorded_at'] }}</td>
-      </tr>
-      {% endfor %}
-      </tbody>
+      </tr>{% endfor %}</tbody>
     </table>
     {% else %}
-    <div style="padding:40px;text-align:center;color:var(--muted)"><i class="fas fa-history" style="font-size:28px;display:block;margin-bottom:8px"></i>Abhi tak koi performance record nahi</div>
+    <div style="padding:40px;text-align:center;color:var(--muted)">No performance history yet</div>
     {% endif %}
   </div>
 </div>
+
+<script>
+function toggleEdit(){
+  const w=document.getElementById('editFormWrap');
+  const ic=document.getElementById('editToggleIcon');
+  if(w.style.display==='none'){w.style.display='block';ic.innerHTML='<i class="fas fa-chevron-up"></i>';}
+  else{w.style.display='none';ic.innerHTML='<i class="fas fa-chevron-down"></i>';}
+}
+// Auto-open edit form if there was an error
+{% if 'Edit' in get_flashed_messages()|join %}toggleEdit();{% endif %}
+</script>
 {% endblock %}

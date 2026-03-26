@@ -1,47 +1,96 @@
 {% extends 'base.html' %}
 {% block title %}Links{% endblock %}
 {% block page_title %}<i class="fas fa-list" style="color:var(--red);margin-right:8px"></i>Links Management{% endblock %}
-
 {% block content %}
-<!-- Filter Bar -->
-<div class="card mb">
-  <div class="card-body" style="padding:14px 20px">
-    <form method="GET" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+
+<!-- Advanced Search Bar -->
+<div class="card mb" style="border-left:4px solid var(--red)">
+  <div class="card-body" style="padding:16px 20px">
+    <form method="GET" id="searchForm">
       {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
-      <input class="form-control" style="max-width:260px" type="text" name="search" value="{{ search }}" placeholder="🔍 ISP, Location, Circuit ID, IP...">
-      {% if session.get('role')=='admin' %}
-      <select class="form-control" style="max-width:130px" name="state">
-        <option value="">All States</option>
-        {% for s in all_states %}
-        <option value="{{ s['state'] }}" {{ 'selected' if state_f==s['state'] }}>{{ s['state'] }}</option>
-        {% endfor %}
-      </select>
-      {% endif %}
-      <button class="btn btn-red" type="submit"><i class="fas fa-search"></i> Search</button>
-      <a href="/links{{ '?category='+category if category else '' }}" class="btn btn-outline"><i class="fas fa-xmark"></i> Clear</a>
-      <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
-        <a href="/links" class="btn btn-sm {{ 'btn-red' if not category else 'btn-outline' }}">All</a>
-        <a href="/links?category=ILL%2FBB" class="btn btn-sm {{ 'btn-red' if category=='ILL/BB' else 'btn-outline' }}">ILL/BB</a>
-        <a href="/links?category=MPLS%2FPRI" class="btn btn-sm {{ 'btn-red' if category=='MPLS/PRI' else 'btn-outline' }}">MPLS/PRI</a>
-        <a href="/links?category=P2P" class="btn btn-sm {{ 'btn-red' if category=='P2P' else 'btn-outline' }}">P2P</a>
-        <a href="/links/add" class="btn btn-sm btn-green"><i class="fas fa-plus"></i> Add New</a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Search</div>
+          <div style="position:relative">
+            <i class="fas fa-search" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px"></i>
+            <input class="form-control" style="padding-left:34px" type="text" name="search" value="{{ search }}" placeholder="ISP, Location, Circuit ID, IP...">
+          </div>
+        </div>
+        {% if session.get('role')=='admin' %}
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase">State</div>
+          <select class="form-control" style="min-width:110px" name="state">
+            <option value="">All States</option>
+            {% for s in all_states %}<option value="{{ s['state'] }}" {{ 'selected' if state_f==s['state'] }}>{{ s['state'] }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase">ISP</div>
+          <select class="form-control" style="min-width:110px" name="isp">
+            <option value="">All ISPs</option>
+            {% for i in all_isps %}<option value="{{ i['isp_name'] }}" {{ 'selected' if isp_f==i['isp_name'] }}>{{ i['isp_name'] }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Status</div>
+          <select class="form-control" style="min-width:110px" name="status">
+            <option value="">All</option>
+            {% for s in ['Active','Inactive','Suspended','Terminated'] %}
+            <option {{ 'selected' if status_f==s }}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase">Performance</div>
+          <select class="form-control" style="min-width:110px" name="perf">
+            <option value="">All</option>
+            {% for p in ['Excellent','Good','Poor','Bad'] %}
+            <option {{ 'selected' if perf_f==p }}>{{ p }}</option>{% endfor %}
+          </select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-red" type="submit"><i class="fas fa-search"></i> Search</button>
+          <a href="/links{{ '?category='+category if category else '' }}" class="btn btn-outline"><i class="fas fa-xmark"></i></a>
+        </div>
       </div>
     </form>
+    {% if search or state_f or isp_f or status_f or perf_f %}
+    <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:11px;color:var(--muted);font-weight:700">Active filters:</span>
+      {% if search %}<span class="badge b-red">Search: "{{ search }}"</span>{% endif %}
+      {% if state_f %}<span class="badge b-blue">State: {{ state_f }}</span>{% endif %}
+      {% if isp_f %}<span class="badge b-purple">ISP: {{ isp_f }}</span>{% endif %}
+      {% if status_f %}<span class="badge b-green">Status: {{ status_f }}</span>{% endif %}
+      {% if perf_f %}<span class="badge b-orange">Performance: {{ perf_f }}</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Category Tabs + Controls -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <a href="/links" class="btn btn-sm {{ 'btn-red' if not category else 'btn-outline' }}">All ({{ total if not category else '' }})</a>
+    <a href="/links?category=ILL" class="btn btn-sm {{ 'btn-red' if category=='ILL' else 'btn-outline' }}"><i class="fas fa-server"></i> ILL</a>
+    <a href="/links?category=BB" class="btn btn-sm {{ 'btn-red' if category=='BB' else 'btn-outline' }}"><i class="fas fa-wifi"></i> Broadband</a>
+    <a href="/links?category=MPLS%2FPRI" class="btn btn-sm {{ 'btn-red' if category=='MPLS/PRI' else 'btn-outline' }}"><i class="fas fa-network-wired"></i> MPLS/PRI</a>
+    <a href="/links?category=P2P" class="btn btn-sm {{ 'btn-red' if category=='P2P' else 'btn-outline' }}"><i class="fas fa-arrows-left-right"></i> P2P</a>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span style="font-size:13px;color:var(--muted)"><b>{{ total }}</b> records</span>
+    <a href="/links/add" class="btn btn-green btn-sm"><i class="fas fa-plus"></i> Add New Link</a>
+    <a href="/export/links{{ '?category='+category if category else '' }}" class="btn btn-sm btn-outline" style="border-color:var(--green);color:var(--green)"><i class="fas fa-file-excel"></i> Export Excel</a>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-header">
-    <span>{{ total }} links mila{% if state_f %} — State: <b>{{ state_f }}</b>{% endif %}{% if category %} — Category: <b>{{ category }}</b>{% endif %}</span>
-    <span style="font-size:12px;color:var(--muted)">Page {{ page }} of {{ total_pages }}</span>
-  </div>
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
         <tr>
           <th>State</th><th>Location</th><th>ISP</th><th>Type</th>
           <th>Speed</th><th>Annual Cost</th><th>Status</th>
-          <th>Performance</th><th>Renewal Date</th><th>Action</th>
+          <th>Performance</th><th>Renewal</th><th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -50,55 +99,32 @@
       <tr>
         <td><span class="badge b-gray">{{ lnk['state'] }}</span></td>
         <td>
-          <div style="font-weight:600">{{ lnk['link_location'] or lnk['engineer_location'] or '—' }}</div>
+          <div style="font-weight:600;font-size:13px">{{ lnk['link_location'] or lnk['engineer_location'] or '—' }}</div>
           {% if lnk['office_type'] %}<div style="font-size:11px;color:var(--muted)">{{ lnk['office_type'] }}</div>{% endif %}
         </td>
         <td>
           <div style="font-weight:600">{{ lnk['isp_name'] }}</div>
           {% if lnk['circuit_id'] %}<div style="font-size:11px;color:var(--muted);font-family:monospace">{{ lnk['circuit_id'] }}</div>{% endif %}
         </td>
-        <td>
-          <span class="badge {{ 'b-blue' if 'ILL' in cat or 'BB' in cat else 'b-purple' if 'MPLS' in cat or 'PRI' in cat else 'b-orange' if 'P2P' in cat else 'b-gray' }}">
-            {{ lnk['link_type'] or cat }}
-          </span>
-        </td>
+        <td><span class="badge {{ 'b-blue' if 'ILL' in cat or 'BB' in cat else 'b-purple' if 'MPLS' in cat or 'PRI' in cat else 'b-orange' if 'P2P' in cat else 'b-gray' }}">{{ lnk['link_type'] or cat }}</span></td>
         <td><b>{{ lnk['speed_mbps'] }}</b></td>
         <td>₹{{ "{:,.0f}".format(lnk['yearly_cost'] or 0) }}</td>
-        <td>
-          {% if lnk['link_status'] == 'Active' %}
-          <span class="badge b-green"><i class="fas fa-circle" style="font-size:7px"></i> Active</span>
-          {% else %}
-          <span class="badge b-red">{{ lnk['link_status'] }}</span>
-          {% endif %}
-        </td>
-        <td>
-          {% set p = lnk['performance'] or 'Good' %}
-          <span class="badge {{ 'b-green' if p=='Excellent' else 'b-blue' if p=='Good' else 'b-yellow' if p=='Poor' else 'b-red' }}">
-            {{ '⭐' if p=='Excellent' else '👍' if p=='Good' else '⚠️' if p=='Poor' else '❌' }} {{ p }}
-          </span>
-        </td>
-        <td style="font-size:12px;{% if lnk['next_renewal_date'] %}color:var(--orange);font-weight:600{% else %}color:var(--muted){% endif %}">
-          {{ lnk['next_renewal_date'] or '—' }}
-        </td>
+        <td>{% if lnk['link_status']=='Active' %}<span class="badge b-green"><i class="fas fa-circle" style="font-size:6px"></i> Active</span>{% else %}<span class="badge b-red">{{ lnk['link_status'] }}</span>{% endif %}</td>
+        <td>{% set p=lnk['performance'] or 'Good' %}<span class="badge {{ 'b-green' if p=='Excellent' else 'b-blue' if p=='Good' else 'b-yellow' if p=='Poor' else 'b-red' }}">{{ '⭐' if p=='Excellent' else '👍' if p=='Good' else '⚠️' if p=='Poor' else '❌' }} {{ p }}</span></td>
+        <td style="font-size:12px;{{ 'color:var(--orange);font-weight:600' if lnk['next_renewal_date'] else 'color:var(--muted)' }}">{{ lnk['next_renewal_date'] or '—' }}</td>
         <td><a href="/links/{{ lnk['id'] }}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i> View</a></td>
       </tr>
       {% else %}
-      <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">Koi link nahi mila</td></tr>
+      <tr><td colspan="10" style="text-align:center;padding:50px;color:var(--muted)"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px"></i>No links found</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
   {% if total_pages > 1 %}
   <div class="pagination">
-    {% if page > 1 %}<a href="?page={{ page-1 }}&category={{ category }}&search={{ search }}&state={{ state_f }}" class="pg-btn"><i class="fas fa-chevron-left"></i></a>{% endif %}
-    {% for p in range(1, total_pages+1) %}
-      {% if p == page or (p >= page-2 and p <= page+2) or p == 1 or p == total_pages %}
-        <a href="?page={{ p }}&category={{ category }}&search={{ search }}&state={{ state_f }}" class="pg-btn {{ 'active' if p==page }}">{{ p }}</a>
-      {% elif p == page-3 or p == page+3 %}
-        <span class="pg-btn" style="border:none">…</span>
-      {% endif %}
-    {% endfor %}
-    {% if page < total_pages %}<a href="?page={{ page+1 }}&category={{ category }}&search={{ search }}&state={{ state_f }}" class="pg-btn"><i class="fas fa-chevron-right"></i></a>{% endif %}
+    {% if page>1 %}<a href="?page={{ page-1 }}&category={{ category }}&search={{ search }}&state={{ state_f }}&isp={{ isp_f }}&status={{ status_f }}&perf={{ perf_f }}" class="pg-btn"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    {% for p in range(1,total_pages+1) %}{% if p==page or (p>=page-2 and p<=page+2) or p==1 or p==total_pages %}<a href="?page={{ p }}&category={{ category }}&search={{ search }}&state={{ state_f }}&isp={{ isp_f }}&status={{ status_f }}&perf={{ perf_f }}" class="pg-btn {{ 'active' if p==page }}">{{ p }}</a>{% elif p==page-3 or p==page+3 %}<span class="pg-btn" style="border:none">…</span>{% endif %}{% endfor %}
+    {% if page<total_pages %}<a href="?page={{ page+1 }}&category={{ category }}&search={{ search }}&state={{ state_f }}&isp={{ isp_f }}&status={{ status_f }}&perf={{ perf_f }}" class="pg-btn"><i class="fas fa-chevron-right"></i></a>{% endif %}
   </div>
   {% endif %}
 </div>

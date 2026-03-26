@@ -11,7 +11,7 @@
       <button class="btn btn-orange btn-sm" onclick="checkRenewals(this)"><i class="fas fa-rotate"></i> Check Renewals</button>
       {% endif %}
       <form method="POST" action="/notifications/read-all" style="display:inline">
-        <button class="btn btn-outline btn-sm" type="submit"><i class="fas fa-check-double"></i> Sab Read Mark</button>
+        <button class="btn btn-outline btn-sm" type="submit"><i class="fas fa-check-double"></i> Mark All Read</button>
       </form>
     </div>
   </div>
@@ -41,7 +41,7 @@
   {% else %}
   <div style="padding:70px;text-align:center;color:var(--muted)">
     <i class="fas fa-bell-slash" style="font-size:40px;display:block;margin-bottom:10px"></i>
-    Koi notification nahi hai
+    No notifications found
   </div>
   {% endif %}
 </div>
