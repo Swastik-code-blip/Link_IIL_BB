@@ -1,82 +1,119 @@
 {% extends 'base.html' %}
-{% block title %}Manage Engineers{% endblock %}
+{% block title %}User Management{% endblock %}
+{% block page_title %}<i class="fas fa-users-gear" style="color:var(--blue);margin-right:8px"></i>User Management{% endblock %}
+
 {% block content %}
-
-<div class="grid-2">
-    <!-- Add User Form -->
-    <div class="card">
-        <div class="card-title">➕ Add New Engineer</div>
-        <form method="POST" action="{{ url_for('add_user') }}">
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" name="name" placeholder="Engineer's full name" required>
-            </div>
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" placeholder="Login username" required>
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="Set password" required>
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="email" placeholder="engineer@db.com">
-            </div>
-            <div class="form-group">
-                <label>Role</label>
-                <select name="role">
-                    <option value="engineer">Engineer (State Access)</option>
-                    <option value="admin">Admin (Full Access)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Assigned State</label>
-                <select name="state">
-                    <option value="">-- Select State --</option>
-                    {% for s in all_states %}
-                    <option value="{{ s }}">{{ s }}</option>
-                    {% endfor %}
-                </select>
-                <small style="color:var(--muted);font-size:11px">Engineer can only view/edit links in this state</small>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Engineer</button>
-        </form>
+<div class="g2 mb">
+  <!-- Add User Form -->
+  <div class="card">
+    <div class="card-header"><i class="fas fa-user-plus" style="color:var(--green);margin-right:7px"></i>Naya User Add Karein</div>
+    <div class="card-body">
+      <form method="POST" action="/users/add">
+        <div class="form-row form-row-2" style="margin-bottom:10px">
+          <div class="form-group">
+            <label class="form-label">Full Name *</label>
+            <input type="text" name="full_name" class="form-control" required placeholder="e.g. Rajesh Kumar">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Username *</label>
+            <input type="text" name="username" class="form-control" required placeholder="e.g. eng_up">
+          </div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:10px">
+          <div class="form-group">
+            <label class="form-label">Password *</label>
+            <input type="password" name="password" class="form-control" required placeholder="min 4 characters">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" placeholder="email@dainikbhaskar.com">
+          </div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:14px">
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-control">
+              <option value="engineer">🔧 Engineer</option>
+              <option value="admin">👑 Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">State (Engineer ke liye)</label>
+            <select name="state" class="form-control">
+              <option value="">-- Select State --</option>
+              {% for code, name in [('GJ','Gujarat'),('MH','Maharashtra'),('RJ','Rajasthan'),('HR','Haryana'),('NCR','NCR Delhi'),('MPCG','MP & CG'),('BR&JH','Bihar & Jharkhand'),('CPH','Chandigarh Punjab HP')] %}
+              <option value="{{ code }}">{{ code }} — {{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-green" style="width:100%"><i class="fas fa-user-plus"></i> User Add Karein</button>
+      </form>
     </div>
+  </div>
 
-    <!-- Users List -->
-    <div class="card">
-        <div class="card-title">👥 Current Users ({{ users|length }})</div>
-        {% for user in users %}
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-            <div>
-                <div style="font-weight:700;font-size:14px">{{ user.name or user.username }}</div>
-                <div style="font-size:12px;color:var(--muted)">@{{ user.username }}{% if user.email %} · {{ user.email }}{% endif %}</div>
-                <div style="margin-top:4px">
-                    <span class="badge {% if user.role == 'admin' %}badge-excellent{% else %}badge-info{% endif %}">
-                        {{ user.role }}
-                    </span>
-                    {% if user.state %}
-                    <span style="font-size:11px;color:var(--muted);margin-left:4px">📍 {{ user.state }}</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% if user.username != 'admin' %}
-            <a href="{{ url_for('delete_user', uid=user.id) }}"
-               onclick="return confirm('Delete user {{ user.username }}?')"
-               class="btn btn-danger btn-sm">Delete</a>
-            {% endif %}
+  <!-- Change Password -->
+  <div class="card">
+    <div class="card-header"><i class="fas fa-key" style="color:var(--orange);margin-right:7px"></i>Password Change Karein (Aapka)</div>
+    <div class="card-body">
+      <form method="POST" action="/users/change-password">
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Purana Password</label>
+          <input type="password" name="old_password" class="form-control" required placeholder="current password">
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Naya Password</label>
+          <input type="password" name="new_password" class="form-control" required placeholder="naya password (min 4 chars)">
+        </div>
+        <button type="submit" class="btn btn-orange" style="width:100%"><i class="fas fa-floppy-disk"></i> Password Change</button>
+      </form>
+
+      <div style="margin-top:20px;padding:14px;background:#f7fafc;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:700;color:var(--dark2);margin-bottom:8px">🔑 State Engineer Login Details</div>
+        {% for code, uname in [('GJ','eng_gj'),('MH','eng_mh'),('RJ','eng_rj'),('HR','eng_hr'),('NCR','eng_ncr'),('MPCG','eng_mpcg'),('BR&JH','eng_br_jh'),('CPH','eng_cph')] %}
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span>{{ code }}</span><span style="font-family:monospace;color:var(--red)">{{ uname }} / eng123</span>
         </div>
         {% endfor %}
+      </div>
     </div>
+  </div>
 </div>
 
-<div class="card" style="margin-top:20px">
-    <div class="card-title">ℹ️ Access Control Info</div>
-    <div style="font-size:13px;color:var(--muted);line-height:1.8">
-        <strong>Admin:</strong> Full access to all states, all links, can manage users, send notifications, export data<br>
-        <strong>Engineer:</strong> Can only view and edit links in their assigned state. Cannot see other states' data.<br>
-        <strong>Notifications:</strong> Engineers receive alerts for their state's links with expiring recharges.
-    </div>
+<!-- Users Table -->
+<div class="card">
+  <div class="card-header"><span>Sab Users ({{ users|length }})</span></div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>#</th><th>Full Name</th><th>Username</th><th>Role</th><th>State</th><th>Email</th><th>Joined</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for u in users %}
+      <tr>
+        <td style="color:var(--muted)">{{ u['id'] }}</td>
+        <td><b>{{ u['full_name'] or '—' }}</b></td>
+        <td style="font-family:monospace;font-size:13px">{{ u['username'] }}</td>
+        <td>
+          {% if u['role']=='admin' %}
+          <span class="badge b-red">👑 Admin</span>
+          {% else %}
+          <span class="badge b-gray">🔧 Engineer</span>
+          {% endif %}
+        </td>
+        <td>{{ u['state'] or '—' }}</td>
+        <td style="font-size:12px">{{ u['email'] or '—' }}</td>
+        <td style="font-size:12px;color:var(--muted)">{{ (u['created_at'] or '')[:10] }}</td>
+        <td>
+          {% if u['username'] != 'admin' and u['id'] != session.get('user_id') %}
+          <form method="POST" action="/users/delete/{{ u['id'] }}" style="display:inline"
+                onsubmit="return confirm('{{ u['username'] }} ko delete karna chahte hain?')">
+            <button class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

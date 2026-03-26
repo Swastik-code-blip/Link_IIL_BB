@@ -2,8 +2,9 @@ services:
   - type: web
     name: db-link-portal
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    plan: free
+    buildCommand: pip install -r requirements.txt && python init_db.py
+    startCommand: gunicorn app:app
     envVars:
-      - key: FLASK_ENV
-        value: production
+      - key: PYTHON_VERSION
+        value: 3.11.0

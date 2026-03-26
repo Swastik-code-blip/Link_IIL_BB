@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}<i class="fas fa-bell" style="color:var(--orange);margin-right:8px"></i>Notifications{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span>All Notifications {% if unread > 0 %}<span class="badge b-red" style="margin-left:6px">{{ unread }} unread</span>{% endif %}</span>
+    <div style="display:flex;gap:8px">
+      {% if session.get('role')=='admin' %}
+      <button class="btn btn-orange btn-sm" onclick="checkRenewals(this)"><i class="fas fa-rotate"></i> Check Renewals</button>
+      {% endif %}
+      <form method="POST" action="/notifications/read-all" style="display:inline">
+        <button class="btn btn-outline btn-sm" type="submit"><i class="fas fa-check-double"></i> Sab Read Mark</button>
+      </form>
+    </div>
+  </div>
+
+  {% if notifs %}
+  {% for n in notifs %}
+  <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px;{{ 'background:#fffbf0' if not n['is_read'] else '' }}" id="notif-{{ n['id'] }}">
+    <div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;background:{{ '#fff3cd' if n['type']=='renewal' else '#f8d7da' if n['type']=='payment' else '#d1ecf1' }}">
+      {{ '📅' if n['type']=='renewal' else '💳' if n['type']=='payment' else '🔔' }}
+    </div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:{{ '700' if not n['is_read'] else '400' }}">{{ n['message'] }}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">
+        <span class="badge {{ 'b-yellow' if n['type']=='renewal' else 'b-red' if n['type']=='payment' else 'b-blue' }}" style="margin-right:6px">{{ n['type'].upper() }}</span>
+        State: {{ n['state'] or 'All' }} · {{ n['created_at'] }}
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      {% if not n['is_read'] %}
+      <button class="btn btn-outline btn-xs" onclick="markRead({{ n['id'] }})"><i class="fas fa-check"></i> Read</button>
+      {% else %}
+      <span style="font-size:12px;color:var(--green)"><i class="fas fa-check-circle"></i></span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="padding:70px;text-align:center;color:var(--muted)">
+    <i class="fas fa-bell-slash" style="font-size:40px;display:block;margin-bottom:10px"></i>
+    Koi notification nahi hai
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function markRead(id){
+  fetch('/notifications/read/'+id,{method:'POST'})
+    .then(()=>{ const el=document.getElementById('notif-'+id); el.style.background=''; location.reload(); });
+}
+function checkRenewals(btn){
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';
+  fetch('/api/check-renewals',{method:'POST'})
+    .then(r=>r.json()).then(d=>{alert(d.message); location.reload();})
+    .catch(()=>{ btn.disabled=false; });
+}
+</script>
+{% endblock %}

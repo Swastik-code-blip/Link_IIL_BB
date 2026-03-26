@@ -1,341 +1,432 @@
-"""
-DB Link Portal - Dainik Bhaskar Network Management
-Run: python app.py
-Default login: admin / admin123
-"""
-
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, Response
-import sqlite3, hashlib, csv, os, io
-from datetime import datetime, date
-from functools import wraps
+from flask import (Flask, render_template, request, redirect,
+                   url_for, session, jsonify, flash)
+from werkzeug.security import check_password_hash, generate_password_hash
+import sqlite3, os, functools
+from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'dblink_dainik_bhaskar_2025_secure'
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'linkportal.db')
-
-CITY_STATE = {
-    'AHMEDABAD':'Gujarat','BARODA':'Gujarat','BHAVNAGAR':'Gujarat','BHUJ':'Gujarat',
-    'JUNAGARH':'Gujarat','MEHSANA':'Gujarat','RAJKOT':'Gujarat','SURAT':'Gujarat','VAPI':'Gujarat',
-    'AJMER':'Rajasthan','ALWAR':'Rajasthan','BANSWARA':'Rajasthan','BARMER':'Rajasthan',
-    'BHARATPUR':'Rajasthan','BHILWARA':'Rajasthan','BIKANER':'Rajasthan','JAIPUR':'Rajasthan',
-    'JODHPUR':'Rajasthan','KOTA':'Rajasthan','NAGOUR':'Rajasthan','PALI':'Rajasthan',
-    'SIKAR':'Rajasthan','SRIGANGANAGAR':'Rajasthan','UDAIPUR':'Rajasthan',
-    'BHOPAL':'Madhya Pradesh','GUNA':'Madhya Pradesh','GWALIOR':'Madhya Pradesh',
-    'HOSHANGABAD':'Madhya Pradesh','INDORE':'Madhya Pradesh','KHANDWA':'Madhya Pradesh',
-    'RATLAM':'Madhya Pradesh','SAGAR':'Madhya Pradesh','UJJAIN':'Madhya Pradesh',
-    'AMRITSAR':'Punjab','BATHINDA':'Punjab','JALANDHAR':'Punjab','LUDHIANA':'Punjab',
-    'CHANDIGARH':'Chandigarh','FARIDABAD':'Haryana','GURGAON':'Haryana','HISAR':'Haryana',
-    'PANIPAT':'Haryana','REWARI':'Haryana','ROHTAK':'Haryana',
-    'NOIDA':'Uttar Pradesh','NOIDA FC':'Uttar Pradesh','LUCKNOW':'Uttar Pradesh',
-    'PATNA':'Bihar','BHAGALPUR':'Bihar','MUZAFFERPUR':'Bihar',
-    'RANCHI':'Jharkhand','JAMSHEDPUR':'Jharkhand','DHANBAD':'Jharkhand',
-    'RAIPUR':'Chhattisgarh','BHILAI':'Chhattisgarh','BILASPUR':'Chhattisgarh','RAIGARH':'Chhattisgarh',
-    'AURANGABAD':'Maharashtra','JALGAON':'Maharashtra','NASIK':'Maharashtra',
-    'SOLAPUR':'Maharashtra','BKC MUMBAI':'Maharashtra','MAHIM MUMBAI':'Maharashtra','AKOLA':'Maharashtra',
-    'BANGLORE':'Karnataka','HARIDWAR':'Uttarakhand',
-}
+app.secret_key = 'dainikbhaskar_portal_2025_secure'
+DB_PATH = os.path.join(os.path.dirname(__file__), 'portal.db')
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-def hash_pw(pw):
-    return hashlib.sha256(pw.encode()).hexdigest()
+def qone(conn, sql, params=()):
+    row = conn.execute(sql, list(params)).fetchone()
+    return row[0] if row else 0
 
-def log_activity(user, action, link_id=None, details=''):
-    try:
-        conn = get_db()
-        conn.execute("INSERT INTO activity_log (user,action,link_id,details) VALUES (?,?,?,?)",
-                     (user, action, link_id, details))
-        conn.commit(); conn.close()
-    except: pass
+def rows_to_dicts(rows):
+    return [dict(r) for r in rows]
 
-def init_db():
-    conn = get_db(); c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL, role TEXT DEFAULT 'engineer',
-        state TEXT, name TEXT, email TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS links (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, wan_id TEXT, center TEXT, location TEXT,
-        state TEXT, division TEXT, office_type TEXT, employee_id TEXT, employee_name TEXT,
-        sim_number TEXT, service_provider TEXT, card_type TEXT, emp_status TEXT,
-        designation TEXT, department TEXT, arc REAL, link_type TEXT DEFAULT 'SIM/Data',
-        performance TEXT DEFAULT 'Good', billing_date TEXT, billing_amount REAL,
-        recharge_date TEXT, recharge_due_date TEXT, notes TEXT,
-        last_updated TEXT DEFAULT CURRENT_TIMESTAMP, updated_by TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, link_id INTEGER, state TEXT,
-        message TEXT, type TEXT DEFAULT 'info', is_read INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS activity_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, action TEXT,
-        link_id INTEGER, details TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
-    try:
-        c.execute("INSERT INTO users (username,password,role,name) VALUES (?,?,?,?)",
-                  ('admin', hash_pw('admin123'), 'admin', 'Administrator'))
-    except: pass
-    conn.commit(); conn.close()
+def and_where(where):
+    return 'AND' if where else 'WHERE'
 
-def import_csv():
-    conn = get_db()
-    if conn.execute("SELECT COUNT(*) FROM links").fetchone()[0] > 0:
-        conn.close(); return
-    conn.close()
-    paths = [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.csv'),
-        '/mnt/user-data/uploads/Pan_India_ILL_and_BB_Link_25-26_Data_Card_SIM_.csv'
-    ]
-    csv_path = next((p for p in paths if os.path.exists(p)), None)
-    if not csv_path:
-        print("No CSV found — start with empty DB"); return
-    try:
-        import pandas as pd
-        df = pd.read_csv(csv_path, encoding='latin1')
-        df.columns = [c.replace('\xa0',' ').strip() for c in df.columns]
-        df = df.dropna(subset=['Center'])
-        conn = get_db()
-        for _, row in df.iterrows():
-            center = str(row.get('Center','')).strip().upper()
-            state = CITY_STATE.get(center, 'Other')
-            card_type = str(row.get('Card Type','')).strip()
-            arc_val = None
-            try: arc_val = float(str(row.get('ARC','')).replace(',','').strip())
-            except: pass
-            conn.execute('''INSERT INTO links
-                (wan_id,center,location,state,division,office_type,employee_id,employee_name,
-                 sim_number,service_provider,card_type,emp_status,designation,department,arc,link_type)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', (
-                str(row.get('Wan Id','')).strip(), center, str(row.get('Location','')).strip(),
-                state, str(row.get('Division','')).strip(), str(row.get('Office Type','')).strip(),
-                str(row.get('EmployeeId','')).strip(), str(row.get('EmployeeName','')).strip(),
-                str(row.get('Sim Number','')).strip(), str(row.get('Service Provider','')).strip(),
-                card_type, str(row.get('EmpStatus','')).strip(),
-                str(row.get('Designation','')).strip(), str(row.get('Department','')).strip(),
-                arc_val, card_type))
-        conn.commit(); conn.close()
-        print(f"Imported {len(df)} records from CSV")
-    except Exception as e:
-        print(f"CSV import error: {e}")
-
-# ── Decorators ──────────────────────────────────────────────────────────────
 def login_required(f):
-    @wraps(f)
-    def d(*a,**k):
-        if 'user_id' not in session: return redirect(url_for('login'))
-        return f(*a,**k)
-    return d
+    @functools.wraps(f)
+    def wrap(*a, **kw):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*a, **kw)
+    return wrap
 
 def admin_required(f):
-    @wraps(f)
-    def d(*a,**k):
-        if 'user_id' not in session: return redirect(url_for('login'))
-        if session.get('role') != 'admin': flash('Admin access required','danger'); return redirect(url_for('dashboard'))
-        return f(*a,**k)
-    return d
+    @functools.wraps(f)
+    def wrap(*a, **kw):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        if session.get('role') != 'admin':
+            flash('Sirf Admin ye kar sakta hai', 'error')
+            return redirect(url_for('dashboard'))
+        return f(*a, **kw)
+    return wrap
 
-# ── Auth ─────────────────────────────────────────────────────────────────────
-@app.route('/login', methods=['GET','POST'])
+def get_state_filter():
+    if session.get('role') == 'engineer' and session.get('state'):
+        return 'WHERE state=?', [session['state']]
+    return '', []
+
+@app.route('/')
+def index():
+    return redirect(url_for('dashboard') if 'user_id' in session else url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        u,p = request.form['username'].strip(), hash_pw(request.form['password'])
-        conn = get_db()
-        user = conn.execute("SELECT * FROM users WHERE username=? AND password=?",(u,p)).fetchone()
-        conn.close()
-        if user:
-            session.update({'user_id':user['id'],'username':user['username'],'role':user['role'],
-                            'state':user['state'],'name':user['name'] or user['username']})
-            log_activity(u,'LOGIN')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        db = get_db()
+        user = db.execute('SELECT * FROM users WHERE username=?', (username,)).fetchone()
+        db.close()
+        if user and check_password_hash(user['password_hash'], password):
+            session.clear()
+            session['user_id']   = user['id']
+            session['username']  = user['username']
+            session['role']      = user['role']
+            session['state']     = user['state'] or ''
+            session['full_name'] = user['full_name'] or user['username']
             return redirect(url_for('dashboard'))
-        flash('Invalid credentials','danger')
+        flash('Username ya password galat hai', 'error')
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    log_activity(session.get('username',''),'LOGOUT'); session.clear()
+    session.clear()
     return redirect(url_for('login'))
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────
-@app.route('/')
+@app.route('/dashboard')
 @login_required
 def dashboard():
-    conn = get_db()
-    role,state = session.get('role'),session.get('state')
-    if role == 'admin':
-        total   = conn.execute("SELECT COUNT(*) FROM links").fetchone()[0]
-        by_type = conn.execute("SELECT card_type,COUNT(*) cnt FROM links GROUP BY card_type").fetchall()
-        by_state= conn.execute("SELECT state,COUNT(*) cnt FROM links GROUP BY state ORDER BY cnt DESC").fetchall()
-        by_prov = conn.execute("SELECT service_provider,COUNT(*) cnt FROM links GROUP BY service_provider ORDER BY cnt DESC").fetchall()
-        by_perf = conn.execute("SELECT performance,COUNT(*) cnt FROM links GROUP BY performance ORDER BY cnt DESC").fetchall()
-        notifs  = conn.execute("SELECT * FROM notifications WHERE is_read=0 ORDER BY created_at DESC LIMIT 25").fetchall()
-        recent  = conn.execute("SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 12").fetchall()
-    else:
-        total   = conn.execute("SELECT COUNT(*) FROM links WHERE state=?",(state,)).fetchone()[0]
-        by_type = conn.execute("SELECT card_type,COUNT(*) cnt FROM links WHERE state=? GROUP BY card_type",(state,)).fetchall()
-        by_state= []
-        by_prov = conn.execute("SELECT service_provider,COUNT(*) cnt FROM links WHERE state=? GROUP BY service_provider ORDER BY cnt DESC",(state,)).fetchall()
-        by_perf = conn.execute("SELECT performance,COUNT(*) cnt FROM links WHERE state=? GROUP BY performance ORDER BY cnt DESC",(state,)).fetchall()
-        notifs  = conn.execute("SELECT * FROM notifications WHERE (state=? OR state='') AND is_read=0 ORDER BY created_at DESC LIMIT 25",(state,)).fetchall()
-        recent  = conn.execute("SELECT * FROM activity_log WHERE user=? ORDER BY created_at DESC LIMIT 12",(session['username'],)).fetchall()
-    conn.close()
-    return render_template('dashboard.html', total=total, by_type=by_type, by_state=by_state,
-                           by_provider=by_prov, by_perf=by_perf, notifs=notifs,
-                           recent_activity=recent, notif_count=len(notifs))
+    db = get_db()
+    where, params = get_state_filter()
+    aw = and_where(where)
 
-# ── Links list ────────────────────────────────────────────────────────────────
+    stats = {
+        'total': qone(db, f'SELECT COUNT(*) FROM links {where}', params),
+        'active': qone(db, f'SELECT COUNT(*) FROM links {where} {aw} link_status=?', params + ['Active']),
+        'cost': qone(db, f'SELECT COALESCE(SUM(yearly_cost),0) FROM links {where}', params),
+        'ill': qone(db, f'SELECT COUNT(*) FROM links {where} {aw} category=?', params + ['ILL/BB']),
+        'mpls': qone(db, f'SELECT COUNT(*) FROM links {where} {aw} category=?', params + ['MPLS/PRI']),
+        'p2p': qone(db, f'SELECT COUNT(*) FROM links {where} {aw} category=?', params + ['P2P']),
+        'sim': qone(db, 'SELECT COUNT(*) FROM sim_cards'),
+    }
+
+    perf_rows = db.execute(f'SELECT performance, COUNT(*) as cnt FROM links {where} GROUP BY performance', params).fetchall()
+    perf_data = {r['performance']: r['cnt'] for r in perf_rows}
+
+    isp_rows = db.execute(
+        f'SELECT isp_name, COUNT(*) as cnt FROM links {where} GROUP BY isp_name ORDER BY cnt DESC LIMIT 10', params
+    ).fetchall()
+
+    state_rows = db.execute(
+        'SELECT state, COUNT(*) as cnt, COALESCE(SUM(yearly_cost),0) as cost FROM links GROUP BY state ORDER BY cnt DESC'
+    ).fetchall()
+
+    nw = 'WHERE is_read=0'
+    np = []
+    if session.get('role') == 'engineer' and session.get('state'):
+        nw += ' AND state=?'
+        np.append(session['state'])
+    notifs = db.execute(f'SELECT * FROM notifications {nw} ORDER BY created_at DESC LIMIT 8', np).fetchall()
+
+    db.close()
+    return render_template('dashboard.html',
+        stats=stats, perf_data=perf_data,
+        isp_rows=rows_to_dicts(isp_rows),
+        state_rows=rows_to_dicts(state_rows),
+        notifs=notifs)
+
 @app.route('/links')
 @login_required
 def links():
-    conn = get_db()
-    role,state = session.get('role'),session.get('state')
-    page,per_page = max(1,int(request.args.get('page',1))), 50
-    filters,params = [],[]
-    if role != 'admin': filters.append("state=?"); params.append(state)
-    for k,col in [('state','state'),('center','center'),('card_type','card_type'),
-                  ('provider','service_provider'),('performance','performance')]:
-        v = request.args.get(k,'')
-        if v and (k!='state' or role=='admin'): filters.append(f"{col}=?"); params.append(v)
-    s = request.args.get('search','')
-    if s:
-        filters.append("(wan_id LIKE ? OR employee_name LIKE ? OR sim_number LIKE ? OR center LIKE ?)")
-        params += [f'%{s}%']*4
-    where = ('WHERE '+' AND '.join(filters)) if filters else ''
-    total_count = conn.execute(f"SELECT COUNT(*) FROM links {where}",params).fetchone()[0]
-    rows = conn.execute(f"SELECT * FROM links {where} ORDER BY state,center LIMIT ? OFFSET ?",
-                        params+[per_page,(page-1)*per_page]).fetchall()
-    all_states  = conn.execute("SELECT DISTINCT state FROM links ORDER BY state").fetchall()
-    all_centers = conn.execute("SELECT DISTINCT center FROM links ORDER BY center").fetchall()
-    conn.close()
-    f = {k:request.args.get(k,'') for k in ['state','center','card_type','provider','performance','search']}
-    return render_template('links.html', links=rows, page=page,
-                           total_pages=(total_count+per_page-1)//per_page,
-                           total_count=total_count, all_states=all_states,
-                           all_centers=all_centers, filters=f)
+    db       = get_db()
+    category = request.args.get('category', '')
+    search   = request.args.get('search', '').strip()
+    state_f  = request.args.get('state', '') if session['role'] == 'admin' else session.get('state', '')
+    page     = max(1, int(request.args.get('page', 1) or 1))
+    per_page = 30
 
-# ── Link detail & edit ────────────────────────────────────────────────────────
-@app.route('/link/<int:lid>')
+    conds, params = [], []
+    if state_f:
+        conds.append('state=?'); params.append(state_f)
+    if category:
+        conds.append('category=?'); params.append(category)
+    if search:
+        conds.append('(isp_name LIKE ? OR link_location LIKE ? OR circuit_id LIKE ? OR link_ip LIKE ? OR engineer_location LIKE ?)')
+        params += [f'%{search}%'] * 5
+
+    where  = ('WHERE ' + ' AND '.join(conds)) if conds else ''
+    total  = qone(db, f'SELECT COUNT(*) FROM links {where}', params)
+    offset = (page - 1) * per_page
+    link_rows = db.execute(
+        f'SELECT * FROM links {where} ORDER BY state, link_location LIMIT ? OFFSET ?',
+        params + [per_page, offset]
+    ).fetchall()
+
+    all_states = db.execute('SELECT DISTINCT state FROM links WHERE state!="" ORDER BY state').fetchall()
+    db.close()
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    return render_template('links.html',
+        links=link_rows, total=total, page=page, per_page=per_page,
+        total_pages=total_pages, category=category, search=search,
+        state_f=state_f, all_states=all_states)
+
+@app.route('/links/add', methods=['GET', 'POST'])
+@login_required
+def add_link():
+    if request.method == 'POST':
+        db = get_db()
+        try:
+            cost_str = request.form.get('yearly_cost', '0') or '0'
+            try:
+                cost = float(cost_str.replace(',', ''))
+            except:
+                cost = 0.0
+            db.execute("""INSERT INTO links
+                (category,state,engineer_location,link_location,office_type,isp_name,link_type,
+                 link_status,circuit_id,media_type,speed_mbps,yearly_cost,link_ip,postal_address,
+                 po_number,po_date,billing_cycle,next_renewal_date,payment_location,payment_status,remark)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+                request.form.get('category', 'ILL/BB'),
+                request.form.get('state', ''),
+                request.form.get('engineer_location', ''),
+                request.form.get('link_location', ''),
+                request.form.get('office_type', ''),
+                request.form.get('isp_name', ''),
+                request.form.get('link_type', ''),
+                request.form.get('link_status', 'Active'),
+                request.form.get('circuit_id', ''),
+                request.form.get('media_type', ''),
+                request.form.get('speed_mbps', ''),
+                cost,
+                request.form.get('link_ip', ''),
+                request.form.get('postal_address', ''),
+                request.form.get('po_number', ''),
+                request.form.get('po_date', ''),
+                request.form.get('billing_cycle', ''),
+                request.form.get('next_renewal_date', ''),
+                request.form.get('payment_location', ''),
+                request.form.get('payment_status', ''),
+                request.form.get('remark', ''),
+            ))
+            db.commit()
+            db.close()
+            flash('Naya link successfully add ho gaya!', 'success')
+            return redirect(url_for('links'))
+        except Exception as e:
+            db.close()
+            flash(f'Error: {e}', 'error')
+
+    db = get_db()
+    all_states = db.execute('SELECT DISTINCT state FROM links WHERE state!="" ORDER BY state').fetchall()
+    db.close()
+    return render_template('add_link.html', all_states=all_states)
+
+@app.route('/links/<int:lid>', methods=['GET', 'POST'])
 @login_required
 def link_detail(lid):
-    conn = get_db()
-    link = conn.execute("SELECT * FROM links WHERE id=?",(lid,)).fetchone()
-    if not link: conn.close(); flash('Not found','danger'); return redirect(url_for('links'))
-    if session['role']!='admin' and link['state']!=session['state']:
-        conn.close(); flash('Access denied','danger'); return redirect(url_for('links'))
-    history = conn.execute("SELECT * FROM activity_log WHERE link_id=? ORDER BY created_at DESC LIMIT 20",(lid,)).fetchall()
-    conn.close()
+    db   = get_db()
+    link = db.execute('SELECT * FROM links WHERE id=?', (lid,)).fetchone()
+    if not link:
+        db.close()
+        flash('Link nahi mila', 'error')
+        return redirect(url_for('links'))
+    if session['role'] == 'engineer' and link['state'] != session.get('state'):
+        db.close()
+        flash('Is link ko dekhne ki permission nahi', 'error')
+        return redirect(url_for('links'))
+
+    if request.method == 'POST':
+        action = request.form.get('action', '')
+        if action == 'set_performance':
+            perf = request.form.get('performance', 'Good')
+            note = request.form.get('note', '')
+            db.execute("UPDATE links SET performance=?, updated_at=datetime('now','localtime') WHERE id=?", (perf, lid))
+            db.execute("INSERT INTO link_performance (link_id,performance,note,recorded_by) VALUES (?,?,?,?)",
+                       (lid, perf, note, session['username']))
+            db.commit()
+            flash('Performance update ho gayi!', 'success')
+        elif action == 'edit_link' and session['role'] == 'admin':
+            try:
+                cost = float(request.form.get('yearly_cost', '0') or '0')
+            except:
+                cost = 0.0
+            db.execute("""UPDATE links SET link_status=?,isp_name=?,link_type=?,speed_mbps=?,
+                yearly_cost=?,next_renewal_date=?,billing_cycle=?,payment_status=?,remark=?,
+                link_ip=?,circuit_id=?,media_type=?,updated_at=datetime('now','localtime') WHERE id=?""", (
+                request.form.get('link_status',''), request.form.get('isp_name',''),
+                request.form.get('link_type',''), request.form.get('speed_mbps',''),
+                cost, request.form.get('next_renewal_date',''),
+                request.form.get('billing_cycle',''), request.form.get('payment_status',''),
+                request.form.get('remark',''), request.form.get('link_ip',''),
+                request.form.get('circuit_id',''), request.form.get('media_type',''), lid))
+            db.commit()
+            flash('Link update ho gaya!', 'success')
+        db.close()
+        return redirect(url_for('link_detail', lid=lid))
+
+    history = db.execute(
+        'SELECT * FROM link_performance WHERE link_id=? ORDER BY recorded_at DESC LIMIT 15', (lid,)
+    ).fetchall()
+    db.close()
     return render_template('link_detail.html', link=link, history=history)
 
-@app.route('/link/<int:lid>/edit', methods=['GET','POST'])
+@app.route('/sim-cards')
 @login_required
-def edit_link(lid):
-    conn = get_db()
-    link = conn.execute("SELECT * FROM links WHERE id=?",(lid,)).fetchone()
-    if not link: conn.close(); flash('Not found','danger'); return redirect(url_for('links'))
-    if session['role']!='admin' and link['state']!=session['state']:
-        conn.close(); flash('Access denied','danger'); return redirect(url_for('links'))
-    if request.method == 'POST':
-        f = request.form
-        ba = None
-        try: ba = float(f.get('billing_amount','')) if f.get('billing_amount') else None
-        except: pass
-        conn.execute('''UPDATE links SET performance=?,billing_date=?,billing_amount=?,
-            recharge_date=?,recharge_due_date=?,notes=?,service_provider=?,
-            emp_status=?,last_updated=?,updated_by=? WHERE id=?''',
-            (f.get('performance'),f.get('billing_date'),ba,f.get('recharge_date'),
-             f.get('recharge_due_date'),f.get('notes'),f.get('service_provider'),
-             f.get('emp_status'),datetime.now().isoformat(),session['username'],lid))
-        rd = f.get('recharge_due_date','')
-        if rd:
-            try:
-                days = (datetime.strptime(rd,'%Y-%m-%d').date()-date.today()).days
-                if days <= 7:
-                    msg = f"⚠️ {link['wan_id']} ({link['center']}) — Recharge due in {days} day(s)!"
-                    conn.execute("INSERT INTO notifications (link_id,state,message,type) VALUES (?,?,?,?)",
-                                 (lid,link['state'],msg,'warning'))
-            except: pass
-        conn.commit()
-        log_activity(session['username'],'EDIT_LINK',lid,f"Perf={f.get('performance')}")
-        conn.close(); flash('Updated successfully!','success')
-        return redirect(url_for('link_detail',lid=lid))
-    conn.close()
-    return render_template('edit_link.html', link=link)
+def sim_cards():
+    db       = get_db()
+    search   = request.args.get('search', '').strip()
+    page     = max(1, int(request.args.get('page', 1) or 1))
+    per_page = 30
 
-# ── Notifications ─────────────────────────────────────────────────────────────
-@app.route('/notifications/read/<int:nid>')
+    conds, params = [], []
+    if search:
+        conds.append('(employee_name LIKE ? OR sim_number LIKE ? OR center LIKE ? OR service_provider LIKE ?)')
+        params += [f'%{search}%'] * 4
+
+    where  = ('WHERE ' + ' AND '.join(conds)) if conds else ''
+    total  = qone(db, f'SELECT COUNT(*) FROM sim_cards {where}', params)
+    offset = (page - 1) * per_page
+    sims   = db.execute(
+        f'SELECT * FROM sim_cards {where} ORDER BY center LIMIT ? OFFSET ?',
+        params + [per_page, offset]
+    ).fetchall()
+    db.close()
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    return render_template('sim_cards.html',
+        sims=sims, total=total, page=page, per_page=per_page,
+        total_pages=total_pages, search=search)
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    db = get_db()
+    conds, params = ['1=1'], []
+    if session['role'] == 'engineer' and session.get('state'):
+        conds.append('state=?'); params.append(session['state'])
+    where = 'WHERE ' + ' AND '.join(conds)
+    notifs = db.execute(f'SELECT * FROM notifications {where} ORDER BY created_at DESC', params).fetchall()
+    unread = qone(db, f'SELECT COUNT(*) FROM notifications {where} AND is_read=0', params)
+    db.close()
+    return render_template('notifications.html', notifs=notifs, unread=unread)
+
+@app.route('/notifications/read/<int:nid>', methods=['POST'])
 @login_required
 def mark_read(nid):
-    conn = get_db(); conn.execute("UPDATE notifications SET is_read=1 WHERE id=?",(nid,)); conn.commit(); conn.close()
-    return redirect(request.referrer or url_for('dashboard'))
+    db = get_db()
+    db.execute('UPDATE notifications SET is_read=1 WHERE id=?', (nid,))
+    db.commit()
+    db.close()
+    return jsonify({'ok': True})
 
-@app.route('/notifications/read_all')
+@app.route('/notifications/read-all', methods=['POST'])
 @login_required
 def mark_all_read():
-    conn = get_db()
-    if session['role']=='admin': conn.execute("UPDATE notifications SET is_read=1")
-    else: conn.execute("UPDATE notifications SET is_read=1 WHERE state=?",(session['state'],))
-    conn.commit(); conn.close(); return redirect(url_for('dashboard'))
+    db = get_db()
+    if session['role'] == 'engineer' and session.get('state'):
+        db.execute('UPDATE notifications SET is_read=1 WHERE state=?', (session['state'],))
+    else:
+        db.execute('UPDATE notifications SET is_read=1')
+    db.commit()
+    db.close()
+    return redirect(url_for('notifications'))
 
-# ── Admin: Users ──────────────────────────────────────────────────────────────
-@app.route('/admin/users')
+@app.route('/api/check-renewals', methods=['POST'])
 @admin_required
-def manage_users():
-    conn = get_db()
-    users = conn.execute("SELECT * FROM users ORDER BY role,username").fetchall(); conn.close()
-    return render_template('users.html', users=users, all_states=sorted(set(CITY_STATE.values())))
+def check_renewals():
+    db    = get_db()
+    lnks  = db.execute("SELECT * FROM links WHERE next_renewal_date!=''").fetchall()
+    count = 0
+    today = datetime.now()
+    for lnk in lnks:
+        rd = (lnk['next_renewal_date'] or '').strip()
+        if not rd or rd in ('nan','None'):
+            continue
+        for fmt in ('%d/%m/%Y','%Y-%m-%d','%d-%m-%Y'):
+            try:
+                renewal = datetime.strptime(rd.split(' ')[0], fmt)
+                days = (renewal - today).days
+                if 0 < days <= 60:
+                    exists = db.execute(
+                        'SELECT id FROM notifications WHERE link_id=? AND type="renewal" AND is_read=0', (lnk['id'],)
+                    ).fetchone()
+                    if not exists:
+                        loc = lnk['link_location'] or lnk['engineer_location'] or '?'
+                        db.execute('INSERT INTO notifications (link_id,message,type,state) VALUES (?,?,?,?)', (
+                            lnk['id'],
+                            f'Renewal {days} din mein due — {lnk["category"]} {loc} ({lnk["isp_name"]})',
+                            'renewal', lnk['state']))
+                        count += 1
+                break
+            except:
+                continue
+    db.commit()
+    db.close()
+    return jsonify({'ok': True, 'created': count, 'message': f'{count} renewal notifications bani'})
 
-@app.route('/admin/users/add', methods=['POST'])
+@app.route('/reports')
+@login_required
+def reports():
+    db = get_db()
+    where, params = get_state_filter()
+    aw = and_where(where)
+
+    by_cat    = rows_to_dicts(db.execute(f'SELECT category, COUNT(*) as cnt, COALESCE(SUM(yearly_cost),0) as cost FROM links {where} GROUP BY category', params).fetchall())
+    by_isp    = rows_to_dicts(db.execute(f'SELECT isp_name, COUNT(*) as cnt, COALESCE(SUM(yearly_cost),0) as cost FROM links {where} GROUP BY isp_name ORDER BY cnt DESC LIMIT 15', params).fetchall())
+    by_perf   = rows_to_dicts(db.execute(f'SELECT performance, COUNT(*) as cnt FROM links {where} GROUP BY performance', params).fetchall())
+    by_status = rows_to_dicts(db.execute(f'SELECT link_status, COUNT(*) as cnt FROM links {where} GROUP BY link_status', params).fetchall())
+    by_state  = rows_to_dicts(db.execute('SELECT state, COUNT(*) as cnt, COALESCE(SUM(yearly_cost),0) as cost FROM links GROUP BY state ORDER BY cost DESC').fetchall())
+    # media type - needs extra condition
+    media_params = params + [''] if params else ['']
+    by_media  = rows_to_dicts(db.execute(
+        f'SELECT media_type, COUNT(*) as cnt FROM links {where} {aw} media_type!=? GROUP BY media_type ORDER BY cnt DESC',
+        params + ['']
+    ).fetchall())
+
+    db.close()
+    return render_template('reports.html',
+        by_cat=by_cat, by_isp=by_isp, by_perf=by_perf,
+        by_status=by_status, by_state=by_state, by_media=by_media)
+
+@app.route('/users')
+@admin_required
+def users():
+    db    = get_db()
+    users = db.execute('SELECT * FROM users ORDER BY role DESC, username').fetchall()
+    db.close()
+    return render_template('users.html', users=users)
+
+@app.route('/users/add', methods=['POST'])
 @admin_required
 def add_user():
-    f = request.form; conn = get_db()
+    db = get_db()
     try:
-        conn.execute("INSERT INTO users (username,password,role,state,name,email) VALUES (?,?,?,?,?,?)",
-                     (f['username'],hash_pw(f['password']),f['role'],f.get('state',''),f.get('name',''),f.get('email','')))
-        conn.commit(); flash(f"User '{f['username']}' created!",'success')
-    except: flash('Username already exists','danger')
-    conn.close(); return redirect(url_for('manage_users'))
+        db.execute('INSERT INTO users (username,password_hash,role,state,full_name,email) VALUES (?,?,?,?,?,?)', (
+            request.form['username'].strip(),
+            generate_password_hash(request.form['password']),
+            request.form['role'],
+            request.form.get('state', ''),
+            request.form['full_name'].strip(),
+            request.form.get('email', '').strip()))
+        db.commit()
+        flash('User add ho gaya!', 'success')
+    except Exception as e:
+        flash(f'Error: {e}', 'error')
+    db.close()
+    return redirect(url_for('users'))
 
-@app.route('/admin/users/delete/<int:uid>')
+@app.route('/users/delete/<int:uid>', methods=['POST'])
 @admin_required
 def delete_user(uid):
-    conn = get_db(); conn.execute("DELETE FROM users WHERE id=? AND username!='admin'",(uid,)); conn.commit(); conn.close()
-    flash('User deleted','info'); return redirect(url_for('manage_users'))
+    if uid == session['user_id']:
+        flash('Apna account delete nahi kar sakte', 'error')
+        return redirect(url_for('users'))
+    db = get_db()
+    db.execute('DELETE FROM users WHERE id=?', (uid,))
+    db.commit()
+    db.close()
+    flash('User delete ho gaya', 'success')
+    return redirect(url_for('users'))
 
-@app.route('/admin/notify', methods=['POST'])
-@admin_required
-def send_notification():
-    f = request.form; conn = get_db()
-    conn.execute("INSERT INTO notifications (state,message,type) VALUES (?,?,?)",
-                 (f.get('state',''),f.get('message',''),f.get('type','info')))
-    conn.commit(); conn.close(); flash('Notification sent!','success')
-    return redirect(url_for('dashboard'))
-
-# ── Export ────────────────────────────────────────────────────────────────────
-@app.route('/export/csv')
+@app.route('/users/change-password', methods=['POST'])
 @login_required
-def export_csv():
-    conn = get_db()
-    role,state = session.get('role'),session.get('state')
-    rows = conn.execute("SELECT * FROM links ORDER BY state,center").fetchall() if role=='admin' \
-           else conn.execute("SELECT * FROM links WHERE state=? ORDER BY center",(state,)).fetchall()
-    conn.close()
-    out = io.StringIO(); w = csv.writer(out)
-    w.writerow(['ID','WAN ID','Center','Location','State','Division','Office Type','Emp ID',
-                'Employee Name','SIM Number','Provider','Card Type','Status','Designation',
-                'Department','ARC','Performance','Billing Date','Billing Amt','Recharge Date',
-                'Recharge Due','Notes','Last Updated'])
-    for r in rows:
-        w.writerow([r['id'],r['wan_id'],r['center'],r['location'],r['state'],r['division'],
-                    r['office_type'],r['employee_id'],r['employee_name'],r['sim_number'],
-                    r['service_provider'],r['card_type'],r['emp_status'],r['designation'],
-                    r['department'],r['arc'],r['performance'],r['billing_date'],
-                    r['billing_amount'],r['recharge_date'],r['recharge_due_date'],
-                    r['notes'],r['last_updated']])
-    return Response(out.getvalue(), mimetype='text/csv',
-                    headers={'Content-Disposition':'attachment; filename=db_links_export.csv'})
+def change_password():
+    old = request.form.get('old_password', '')
+    new = request.form.get('new_password', '')
+    db  = get_db()
+    user = db.execute('SELECT * FROM users WHERE id=?', (session['user_id'],)).fetchone()
+    if not check_password_hash(user['password_hash'], old):
+        flash('Purana password galat hai', 'error')
+    elif len(new) < 4:
+        flash('Password kam se kam 4 characters ka hona chahiye', 'error')
+    else:
+        db.execute('UPDATE users SET password_hash=? WHERE id=?',
+                   (generate_password_hash(new), session['user_id']))
+        db.commit()
+        flash('Password change ho gaya!', 'success')
+    db.close()
+    return redirect(url_for('users'))
 
 if __name__ == '__main__':
-    init_db(); import_csv()
-    port = int(os.environ.get('PORT',5000))
-    print(f"\n{'='*50}\n  DB Link Portal — Dainik Bhaskar\n  http://localhost:{port}\n  Login: admin / admin123\n{'='*50}\n")
-    app.run(host='0.0.0.0', port=port, debug=(os.environ.get('FLASK_ENV')!='production'))
+    app.run(debug=True, port=5000)

@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Naya Link Add{% endblock %}
+{% block page_title %}<i class="fas fa-plus-circle" style="color:var(--green);margin-right:8px"></i>Naya Link Add Karein{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:14px"><a href="/links" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a></div>
+
+<div class="card">
+  <div class="card-header"><i class="fas fa-plug" style="color:var(--red);margin-right:7px"></i>New Link Details Bharein</div>
+  <div class="card-body">
+    <form method="POST">
+
+      <!-- Row 1: Category, State, Location -->
+      <div class="form-row form-row-3 mb">
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select name="category" class="form-control" required>
+            <option value="ILL/BB">ILL / Broadband</option>
+            <option value="MPLS/PRI">MPLS / PRI</option>
+            <option value="P2P">P2P</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">State *</label>
+          <select name="state" class="form-control" required>
+            <option value="">-- State chunein --</option>
+            {% for s in all_states %}
+            <option value="{{ s['state'] }}" {{ 'selected' if session.get('state')==s['state'] }}>{{ s['state'] }}</option>
+            {% endfor %}
+            <option value="GJ">GJ — Gujarat</option>
+            <option value="MH">MH — Maharashtra</option>
+            <option value="RJ">RJ — Rajasthan</option>
+            <option value="HR">HR — Haryana</option>
+            <option value="NCR">NCR — Delhi NCR</option>
+            <option value="MPCG">MPCG — MP & CG</option>
+            <option value="BR&JH">BR&JH — Bihar & Jharkhand</option>
+            <option value="CPH">CPH — Chandigarh Punjab HP</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Link Status</label>
+          <select name="link_status" class="form-control">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Suspended">Suspended</option>
+            <option value="Terminated">Terminated</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 2: Locations -->
+      <div class="form-row form-row-2 mb">
+        <div class="form-group">
+          <label class="form-label">Engineer Location</label>
+          <input type="text" name="engineer_location" class="form-control" placeholder="e.g. Ahmedabad">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Link Location *</label>
+          <input type="text" name="link_location" class="form-control" placeholder="e.g. Ahmedabad - SG Highway" required>
+        </div>
+      </div>
+
+      <!-- Row 3: Office type, ISP, Link Type -->
+      <div class="form-row form-row-3 mb">
+        <div class="form-group">
+          <label class="form-label">Office Type</label>
+          <select name="office_type" class="form-control">
+            <option value="">-- Select --</option>
+            <option>City Office</option>
+            <option>Press</option>
+            <option>Corporate</option>
+            <option>Editorial</option>
+            <option>Branch</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ISP Name *</label>
+          <input type="text" name="isp_name" class="form-control" placeholder="e.g. TATA, Airtel, BSNL" required list="isp-list">
+          <datalist id="isp-list">
+            <option>TATA</option><option>Airtel</option><option>BSNL</option><option>ISHAN</option>
+            <option>Reliance Jio</option><option>GTPL</option><option>Vodafone</option>
+            <option>ACT</option><option>Hathway</option><option>Excitel</option>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Link Type</label>
+          <select name="link_type" class="form-control">
+            <option value="">-- Select --</option>
+            <option>ILL</option><option>BB</option><option>MPLS</option>
+            <option>PRI</option><option>P2P</option><option>Leased Line</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 4: Speed, Cost, Media -->
+      <div class="form-row form-row-3 mb">
+        <div class="form-group">
+          <label class="form-label">Speed (Mbps)</label>
+          <input type="text" name="speed_mbps" class="form-control" placeholder="e.g. 100, 1GBPS">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Annual Cost (₹)</label>
+          <input type="number" name="yearly_cost" class="form-control" placeholder="e.g. 120000" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Media Type</label>
+          <select name="media_type" class="form-control">
+            <option value="">-- Select --</option>
+            <option>Fiber</option><option>RF</option><option>Copper</option><option>Wireless</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 5: Circuit ID, IP, Billing -->
+      <div class="form-row form-row-3 mb">
+        <div class="form-group">
+          <label class="form-label">Circuit ID</label>
+          <input type="text" name="circuit_id" class="form-control" placeholder="e.g. 7905910515">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Link IP Address</label>
+          <input type="text" name="link_ip" class="form-control" placeholder="e.g. 103.188.48.154">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Billing Cycle</label>
+          <select name="billing_cycle" class="form-control">
+            <option value="">-- Select --</option>
+            <option>Monthly</option><option>Quarterly</option><option>Half Yearly</option><option>Yearly</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 6: PO, Dates -->
+      <div class="form-row form-row-3 mb">
+        <div class="form-group">
+          <label class="form-label">PO Number</label>
+          <input type="text" name="po_number" class="form-control" placeholder="Purchase Order No.">
+        </div>
+        <div class="form-group">
+          <label class="form-label">PO Date</label>
+          <input type="text" name="po_date" class="form-control" placeholder="DD/MM/YYYY">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Next Renewal Date</label>
+          <input type="text" name="next_renewal_date" class="form-control" placeholder="DD/MM/YYYY">
+        </div>
+      </div>
+
+      <!-- Row 7: Payment -->
+      <div class="form-row form-row-2 mb">
+        <div class="form-group">
+          <label class="form-label">Payment Location</label>
+          <select name="payment_location" class="form-control">
+            <option value="">-- Select --</option>
+            <option>Local</option><option>State</option><option>Corporate (Corp)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Status</label>
+          <select name="payment_status" class="form-control">
+            <option value="">-- Select --</option>
+            <option>Done</option><option>Pending</option><option>Processing</option><option>Overdue</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Postal Address -->
+      <div class="form-group mb">
+        <label class="form-label">Postal Address</label>
+        <input type="text" name="postal_address" class="form-control" placeholder="Full postal address of the link location">
+      </div>
+
+      <!-- Remark -->
+      <div class="form-group mb">
+        <label class="form-label">Remark</label>
+        <input type="text" name="remark" class="form-control" placeholder="Koi bhi note ya remark...">
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn btn-green"><i class="fas fa-floppy-disk"></i> Link Save Karein</button>
+        <a href="/links" class="btn btn-outline"><i class="fas fa-xmark"></i> Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

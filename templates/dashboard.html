@@ -1,149 +1,158 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
+{% block page_title %}<i class="fas fa-gauge-high" style="color:var(--red);margin-right:8px"></i>Dashboard{% endblock %}
+
 {% block content %}
-
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">🔗</div>
-        <div class="stat-num">{{ total }}</div>
-        <div class="stat-label">Total Links</div>
-    </div>
-    {% for row in by_type %}
-    <div class="stat-card {% if 'SIM' in row.card_type %}info{% elif 'DATA' in row.card_type %}success{% else %}warning{% endif %}">
-        <div class="stat-num">{{ row.cnt }}</div>
-        <div class="stat-label">{{ row.card_type }}</div>
-    </div>
-    {% endfor %}
-    <div class="stat-card warning">
-        <div class="stat-icon">🔔</div>
-        <div class="stat-num">{{ notifs|length }}</div>
-        <div class="stat-label">Pending Alerts</div>
-    </div>
+<!-- Stat Cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fce8e6"><i class="fas fa-network-wired" style="color:var(--red)"></i></div>
+    <div><div class="stat-val">{{ stats.total }}</div><div class="stat-lbl">Total Links</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#d4edda"><i class="fas fa-circle-check" style="color:var(--green)"></i></div>
+    <div><div class="stat-val">{{ stats.active }}</div><div class="stat-lbl">Active Links</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#d1ecf1"><i class="fas fa-wifi" style="color:var(--blue)"></i></div>
+    <div><div class="stat-val">{{ stats.ill }}</div><div class="stat-lbl">ILL / Broadband</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#e8daef"><i class="fas fa-project-diagram" style="color:var(--purple)"></i></div>
+    <div><div class="stat-val">{{ stats.mpls }}</div><div class="stat-lbl">MPLS / PRI</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fde3c8"><i class="fas fa-arrow-right-arrow-left" style="color:var(--orange)"></i></div>
+    <div><div class="stat-val">{{ stats.p2p }}</div><div class="stat-lbl">P2P Links</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#d4edda"><i class="fas fa-sim-card" style="color:var(--green)"></i></div>
+    <div><div class="stat-val">{{ stats.sim }}</div><div class="stat-lbl">SIM / Data Cards</div></div>
+  </div>
+  <div class="stat-card" style="grid-column:span 2">
+    <div class="stat-icon" style="background:#fce8e6"><i class="fas fa-indian-rupee-sign" style="color:var(--red)"></i></div>
+    <div><div class="stat-val">₹{{ "{:,.0f}".format(stats.cost) }}</div><div class="stat-lbl">Total Annual Cost (All Links)</div></div>
+  </div>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
-    <!-- Performance Overview -->
-    <div class="card">
-        <div class="card-title">📊 Link Performance Overview</div>
-        <div id="perf-chart" style="height:200px; display:flex; align-items:flex-end; gap:12px; padding-top:12px;">
-            {% for row in by_perf %}
-            {% set max_val = by_perf|map(attribute='cnt')|max %}
-            {% set height = (row.cnt / max_val * 160)|int %}
-            {% set color = '#27ae60' if row.performance == 'Excellent' else ('#2ecc71' if row.performance == 'Good' else ('#f39c12' if row.performance == 'Poor' else '#e74c3c')) %}
-            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">
-                <div style="font-size:12px;font-weight:700;color:#636e72">{{ row.cnt }}</div>
-                <div style="width:100%;height:{{ height }}px;background:{{ color }};border-radius:6px 6px 0 0;transition:height 0.5s;"></div>
-                <div style="font-size:11px;color:#636e72;text-align:center">{{ row.performance or 'N/A' }}</div>
-            </div>
-            {% endfor %}
-        </div>
+<!-- Charts Row -->
+<div class="g2 mb">
+  <div class="card">
+    <div class="card-header"><span><i class="fas fa-gauge" style="color:var(--red);margin-right:6px"></i>Link Performance</span></div>
+    <div class="card-body" style="height:230px;display:flex;align-items:center;justify-content:center">
+      <canvas id="perfChart"></canvas>
     </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span><i class="fas fa-building" style="color:var(--blue);margin-right:6px"></i>ISP-wise Distribution</span></div>
+    <div class="card-body" style="height:230px">
+      <canvas id="ispChart"></canvas>
+    </div>
+  </div>
+</div>
 
-    <!-- Service Providers -->
-    <div class="card">
-        <div class="card-title">📶 Service Provider Distribution</div>
-        {% set total_p = by_provider|sum(attribute='cnt') %}
-        {% for row in by_provider %}
-        {% set pct = (row.cnt / total_p * 100)|int if total_p > 0 else 0 %}
-        {% set color = '#e74c3c' if row.service_provider == 'JIO' else ('#fd79a8' if row.service_provider == 'AIRTEL' else ('#a29bfe' if row.service_provider == 'VODAFONE' else ('#fdcb6e' if row.service_provider == 'IDEA' else '#00cec9'))) %}
-        <div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-                <span style="font-weight:600">{{ row.service_provider }}</span>
-                <span style="color:var(--muted)">{{ row.cnt }} ({{ pct }}%)</span>
-            </div>
-            <div style="background:#f0f0f0;border-radius:4px;height:8px;overflow:hidden">
-                <div style="width:{{ pct }}%;height:100%;background:{{ color }};border-radius:4px;"></div>
-            </div>
-        </div>
+<!-- State table + Notifications -->
+<div class="g2 mb">
+  <div class="card">
+    <div class="card-header">
+      <span><i class="fas fa-map-marker-alt" style="color:var(--red);margin-right:6px"></i>State-wise Summary</span>
+      <a href="/reports" class="btn btn-outline btn-sm">Full Report</a>
+    </div>
+    <div class="card-body-p0">
+      <table class="tbl">
+        <thead><tr><th>State</th><th>Links</th><th>Annual Cost</th></tr></thead>
+        <tbody>
+        {% for r in state_rows %}
+        <tr>
+          <td><span class="badge b-gray">{{ r.state }}</span></td>
+          <td><b>{{ r.cnt }}</b></td>
+          <td>₹{{ "{:,.0f}".format(r.cost) }}</td>
+        </tr>
         {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span><i class="fas fa-bell" style="color:var(--orange);margin-right:6px"></i>Notifications</span>
+      {% if session.get('role')=='admin' %}
+      <button class="btn btn-orange btn-sm" onclick="checkRenewals(this)">
+        <i class="fas fa-rotate"></i> Check Renewals
+      </button>
+      {% endif %}
+    </div>
+    {% if notifs %}
+    <div>
+      {% for n in notifs %}
+      <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start">
+        <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;background:{{ '#fff3cd' if n['type']=='renewal' else '#f8d7da' }}">
+          {{ '📅' if n['type']=='renewal' else '💳' }}
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600">{{ n['message'] }}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">{{ n['created_at'] }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="padding:40px;text-align:center;color:var(--muted)">
+      <i class="fas fa-check-circle" style="font-size:32px;color:var(--green);display:block;margin-bottom:8px"></i>
+      Koi pending notification nahi
+    </div>
+    {% endif %}
+    <div style="padding:10px 18px;border-top:1px solid var(--border);text-align:right">
+      <a href="/notifications" class="btn btn-outline btn-sm">Sab dekho <i class="fas fa-arrow-right"></i></a>
+    </div>
+  </div>
 </div>
 
-{% if session.role == 'admin' %}
-<!-- State-wise breakdown -->
-<div class="card" style="margin-bottom:24px">
-    <div class="card-title">🗺️ State-wise Link Count</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-        {% for row in by_state %}
-        <a href="{{ url_for('links', state=row.state) }}" style="text-decoration:none">
-            <div style="background:{% if row.cnt > 200 %}var(--primary){% elif row.cnt > 100 %}#e67e22{% else %}var(--secondary){% endif %};
-                color:white;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;">
-                {{ row.state }}: {{ row.cnt }}
-            </div>
-        </a>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const perfData = {{ perf_data|tojson }};
+const ispRows  = {{ isp_rows|tojson }};
 
-<!-- Notifications -->
-<div class="grid-2">
-    <div class="card">
-        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-            🔔 Alerts & Notifications
-            {% if notifs %}
-            <a href="{{ url_for('mark_all_read') }}" class="btn btn-sm btn-outline">Mark All Read</a>
-            {% endif %}
-        </div>
-        {% if notifs %}
-        {% for n in notifs[:8] %}
-        <div class="notif-item {{ n.type }}">
-            <div style="display:flex;justify-content:space-between;align-items:start">
-                <div>{{ n.message }}</div>
-                <a href="{{ url_for('mark_read', notif_id=n.id) }}" style="font-size:11px;color:var(--muted);white-space:nowrap;margin-left:8px">✓ Read</a>
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">{{ n.created_at }}</div>
-        </div>
-        {% endfor %}
-        {% else %}
-        <div style="text-align:center;padding:20px;color:var(--muted)">✅ No pending alerts</div>
-        {% endif %}
-    </div>
+// Performance donut
+const perfLabels = Object.keys(perfData);
+const perfVals   = Object.values(perfData);
+const perfColor  = {Excellent:'#27ae60',Good:'#2980b9',Poor:'#e67e22',Bad:'#e74c3c'};
+if(document.getElementById('perfChart')){
+  new Chart(document.getElementById('perfChart'),{
+    type:'doughnut',
+    data:{
+      labels: perfLabels.length ? perfLabels : ['No data'],
+      datasets:[{data: perfVals.length ? perfVals : [1],
+        backgroundColor: perfLabels.map(l=>perfColor[l]||'#95a5a6'),
+        borderWidth:2,borderColor:'#fff'}]
+    },
+    options:{plugins:{legend:{position:'bottom',labels:{font:{size:12}}}},cutout:'62%',maintainAspectRatio:false}
+  });
+}
 
-    <!-- Recent Activity -->
-    <div class="card">
-        <div class="card-title">📋 Recent Activity</div>
-        {% for act in recent_activity %}
-        <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
-            <div><strong>{{ act.action }}</strong> by {{ act.user }}</div>
-            {% if act.details %}<div style="color:var(--muted);font-size:12px">{{ act.details }}</div>{% endif %}
-            <div style="color:var(--muted);font-size:11px;margin-top:2px">{{ act.created_at }}</div>
-        </div>
-        {% else %}
-        <div style="text-align:center;padding:20px;color:var(--muted)">No recent activity</div>
-        {% endfor %}
-    </div>
-</div>
+// ISP bar
+if(document.getElementById('ispChart')){
+  new Chart(document.getElementById('ispChart'),{
+    type:'bar',
+    data:{
+      labels: ispRows.map(r=>r.isp_name),
+      datasets:[{label:'Links',data:ispRows.map(r=>r.cnt),backgroundColor:'#c0392b',borderRadius:4}]
+    },
+    options:{
+      indexAxis:'y',plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{stepSize:1}}},
+      maintainAspectRatio:false
+    }
+  });
+}
 
-{% if session.role == 'admin' %}
-<!-- Send Notification (Admin) -->
-<div class="card" style="margin-top:24px">
-    <div class="card-title">📢 Send Notification to Engineers</div>
-    <form method="POST" action="{{ url_for('send_notification') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <div class="form-group" style="flex:1;min-width:150px;margin:0">
-            <label>State</label>
-            <select name="state">
-                <option value="">All States</option>
-                {% for row in by_state %}
-                <option value="{{ row.state }}">{{ row.state }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group" style="flex:3;min-width:250px;margin:0">
-            <label>Message</label>
-            <input type="text" name="message" placeholder="Enter notification message..." required>
-        </div>
-        <div class="form-group" style="margin:0">
-            <label>Type</label>
-            <select name="type">
-                <option value="info">Info</option>
-                <option value="warning">Warning</option>
-                <option value="danger">Urgent</option>
-            </select>
-        </div>
-        <button type="submit" class="btn btn-primary">Send 📤</button>
-    </form>
-</div>
-{% endif %}
-
+function checkRenewals(btn){
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';
+  fetch('/api/check-renewals',{method:'POST'})
+    .then(r=>r.json())
+    .then(d=>{alert(d.message); location.reload();})
+    .catch(()=>{btn.disabled=false; btn.innerHTML='<i class="fas fa-rotate"></i> Check Renewals';});
+}
+</script>
 {% endblock %}

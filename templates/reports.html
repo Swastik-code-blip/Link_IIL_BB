@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}<i class="fas fa-chart-bar" style="color:var(--purple);margin-right:8px"></i>Reports & Analytics{% endblock %}
+
+{% block content %}
+<!-- Summary Cards Row -->
+<div class="g3 mb">
+  <div class="card">
+    <div class="card-header"><i class="fas fa-layer-group" style="color:var(--red);margin-right:7px"></i>Category-wise</div>
+    <div class="card-body-p0">
+      <table class="tbl">
+        <thead><tr><th>Category</th><th>Links</th><th>Annual Cost</th></tr></thead>
+        <tbody>
+        {% for r in by_cat %}
+        <tr>
+          <td><span class="badge {{ 'b-blue' if 'ILL' in r.category else 'b-purple' if 'MPLS' in r.category else 'b-orange' }}">{{ r.category }}</span></td>
+          <td><b>{{ r.cnt }}</b></td>
+          <td>₹{{ "{:,.0f}".format(r.cost) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><i class="fas fa-gauge" style="color:var(--green);margin-right:7px"></i>Performance</div>
+    <div class="card-body-p0">
+      {% set tot = by_perf|sum(attribute='cnt') %}
+      <table class="tbl">
+        <thead><tr><th>Performance</th><th>Count</th><th>%</th></tr></thead>
+        <tbody>
+        {% for r in by_perf %}
+        <tr>
+          <td><span class="badge {{ 'b-green' if r.performance=='Excellent' else 'b-blue' if r.performance=='Good' else 'b-yellow' if r.performance=='Poor' else 'b-red' }}">{{ r.performance }}</span></td>
+          <td><b>{{ r.cnt }}</b></td>
+          <td>{{ "%.1f"|format(r.cnt*100/tot if tot else 0) }}%</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><i class="fas fa-signal" style="color:var(--blue);margin-right:7px"></i>Link Status</div>
+    <div class="card-body-p0">
+      <table class="tbl">
+        <thead><tr><th>Status</th><th>Count</th></tr></thead>
+        <tbody>
+        {% for r in by_status %}
+        <tr>
+          <td><span class="badge {{ 'b-green' if r.link_status=='Active' else 'b-red' }}">{{ r.link_status }}</span></td>
+          <td><b>{{ r.cnt }}</b></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ISP Chart -->
+<div class="card mb">
+  <div class="card-header"><i class="fas fa-building" style="color:var(--purple);margin-right:7px"></i>ISP-wise Analysis</div>
+  <div style="padding:16px 20px;height:280px"><canvas id="ispChart"></canvas></div>
+</div>
+
+<!-- Media Type + State wise -->
+<div class="g2 mb">
+  <div class="card">
+    <div class="card-header"><i class="fas fa-ethernet" style="color:var(--orange);margin-right:7px"></i>Media Type Distribution</div>
+    <div style="padding:16px;height:220px"><canvas id="mediaChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><i class="fas fa-map" style="color:var(--red);margin-right:7px"></i>State-wise Cost</div>
+    <div style="padding:16px;height:220px"><canvas id="stateChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ISP Detail Table -->
+<div class="card">
+  <div class="card-header"><i class="fas fa-table" style="color:var(--blue);margin-right:7px"></i>ISP Detail Table</div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>ISP Name</th><th>Total Links</th><th>Annual Cost</th><th>Avg Cost/Link</th></tr></thead>
+      <tbody>
+      {% for r in by_isp %}
+      <tr>
+        <td><b>{{ r.isp_name }}</b></td>
+        <td>{{ r.cnt }}</td>
+        <td>₹{{ "{:,.0f}".format(r.cost) }}</td>
+        <td>₹{{ "{:,.0f}".format(r.cost/r.cnt if r.cnt else 0) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const ispData   = {{ by_isp|tojson }};
+const mediaData = {{ by_media|tojson }};
+const stateData = {{ by_state|tojson }};
+
+// ISP bar
+new Chart(document.getElementById('ispChart'),{
+  type:'bar',
+  data:{labels:ispData.map(r=>r.isp_name),datasets:[
+    {label:'Links',data:ispData.map(r=>r.cnt),backgroundColor:'#c0392b',borderRadius:4,yAxisID:'y'},
+    {label:'Annual Cost (₹)',data:ispData.map(r=>r.cost||0),type:'line',borderColor:'#2980b9',backgroundColor:'rgba(41,128,185,.1)',yAxisID:'y1',fill:true,tension:.3}
+  ]},
+  options:{scales:{y:{beginAtZero:true,title:{display:true,text:'Links Count'}},y1:{beginAtZero:true,position:'right',title:{display:true,text:'Cost ₹'},grid:{drawOnChartArea:false}}},maintainAspectRatio:false}
+});
+
+// Media pie
+new Chart(document.getElementById('mediaChart'),{
+  type:'pie',
+  data:{labels:mediaData.map(r=>r.media_type),datasets:[{data:mediaData.map(r=>r.cnt),backgroundColor:['#c0392b','#2980b9','#27ae60','#e67e22','#8e44ad'],borderWidth:2,borderColor:'#fff'}]},
+  options:{plugins:{legend:{position:'right'}},maintainAspectRatio:false}
+});
+
+// State bar
+new Chart(document.getElementById('stateChart'),{
+  type:'bar',
+  data:{labels:stateData.map(r=>r.state),datasets:[{label:'Annual Cost ₹',data:stateData.map(r=>r.cost||0),backgroundColor:'#27ae60',borderRadius:4}]},
+  options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}},maintainAspectRatio:false}
+});
+</script>
+{% endblock %}

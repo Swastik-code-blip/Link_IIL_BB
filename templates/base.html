@@ -1,255 +1,220 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DB Link Portal - Dainik Bhaskar</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary: #c0392b;
-            --primary-dark: #922b21;
-            --secondary: #2c3e50;
-            --accent: #e74c3c;
-            --bg: #f5f6fa;
-            --card: #ffffff;
-            --text: #2d3436;
-            --muted: #636e72;
-            --border: #dfe6e9;
-            --success: #27ae60;
-            --warning: #f39c12;
-            --danger: #e74c3c;
-            --info: #3498db;
-            --sidebar-width: 240px;
-        }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{% block title %}DB Link Portal{% endblock %} — Dainik Bhaskar IT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{
+  --red:#c0392b;--red2:#96281b;--dark:#1e2a35;--dark2:#2c3e50;
+  --bg:#f0f3f7;--card:#fff;--border:#e2e8f0;
+  --green:#27ae60;--orange:#e67e22;--blue:#2980b9;--purple:#8e44ad;
+  --text:#2d3748;--muted:#718096;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
 
-        /* Sidebar */
-        .sidebar {
-            position: fixed; top: 0; left: 0;
-            width: var(--sidebar-width); height: 100vh;
-            background: var(--secondary); color: white;
-            display: flex; flex-direction: column;
-            z-index: 1000; overflow-y: auto;
-        }
-        .sidebar-header {
-            padding: 20px 16px;
-            background: var(--primary);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .sidebar-header .logo { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
-        .sidebar-header .sub { font-size: 11px; opacity: 0.8; margin-top: 2px; }
-        .sidebar-header .user-info { margin-top: 12px; font-size: 12px; opacity: 0.9; }
-        .sidebar-header .badge-role {
-            display: inline-block; padding: 2px 8px; border-radius: 10px;
-            font-size: 10px; font-weight: 700; text-transform: uppercase;
-            background: rgba(255,255,255,0.2); margin-top: 4px;
-        }
-        .nav-section { padding: 12px 0; }
-        .nav-label {
-            padding: 6px 16px; font-size: 10px; text-transform: uppercase;
-            letter-spacing: 1.5px; opacity: 0.5; font-weight: 600;
-        }
-        .nav-item {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 16px; color: rgba(255,255,255,0.75);
-            text-decoration: none; font-size: 14px; transition: all 0.2s;
-        }
-        .nav-item:hover, .nav-item.active {
-            background: rgba(255,255,255,0.1); color: white;
-            border-right: 3px solid var(--accent);
-        }
-        .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
-        .nav-badge {
-            margin-left: auto; background: var(--accent);
-            border-radius: 10px; padding: 1px 7px;
-            font-size: 11px; font-weight: 700;
-        }
+/* ── Sidebar ── */
+.sidebar{width:230px;background:var(--dark);color:#fff;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;z-index:200;transition:width .2s}
+.sb-brand{padding:18px 16px;background:var(--red);display:flex;align-items:center;gap:10px}
+.sb-brand .icon{font-size:24px}
+.sb-brand .title{font-size:15px;font-weight:700;line-height:1.2}
+.sb-brand .sub{font-size:10px;opacity:.75}
+.sb-section{padding:12px 16px 4px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.35);font-weight:600}
+.sb-link{display:flex;align-items:center;gap:10px;padding:10px 16px;color:rgba(255,255,255,.75);text-decoration:none;font-size:13.5px;border-left:3px solid transparent;transition:all .18s}
+.sb-link:hover,.sb-link.active{background:rgba(255,255,255,.08);color:#fff;border-left-color:var(--red)}
+.sb-link i{width:17px;text-align:center;font-size:13px}
+.sb-badge{margin-left:auto;background:var(--red);color:#fff;border-radius:12px;padding:1px 7px;font-size:10px;font-weight:700}
+.sb-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.35)}
 
-        /* Main content */
-        .main { margin-left: var(--sidebar-width); min-height: 100vh; }
-        .topbar {
-            background: white; padding: 12px 24px;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-            position: sticky; top: 0; z-index: 100;
-        }
-        .topbar h1 { font-size: 18px; font-weight: 700; color: var(--secondary); }
-        .topbar-right { display: flex; align-items: center; gap: 12px; }
-        .content { padding: 24px; }
+/* ── Main ── */
+.main{margin-left:230px;flex:1;display:flex;flex-direction:column;min-height:100vh}
 
-        /* Cards */
-        .card {
-            background: var(--card); border-radius: 10px;
-            padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-            border: 1px solid var(--border);
-        }
-        .card-title {
-            font-size: 14px; font-weight: 700; color: var(--muted);
-            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
-        }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-card {
-            background: white; border-radius: 10px;
-            padding: 20px; border-left: 4px solid var(--primary);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-        }
-        .stat-card.success { border-color: var(--success); }
-        .stat-card.warning { border-color: var(--warning); }
-        .stat-card.info { border-color: var(--info); }
-        .stat-card.danger { border-color: var(--danger); }
-        .stat-num { font-size: 32px; font-weight: 800; color: var(--secondary); }
-        .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
-        .stat-icon { font-size: 28px; float: right; opacity: 0.2; }
+/* ── Topbar ── */
+.topbar{background:var(--card);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.topbar-title{font-size:17px;font-weight:700;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.notif-wrap{position:relative;cursor:pointer}
+.notif-wrap .fa-bell{font-size:18px;color:var(--muted)}
+.notif-dot{position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid #fff}
+.user-chip{display:flex;align-items:center;gap:9px;background:var(--bg);padding:6px 12px;border-radius:50px;border:1px solid var(--border)}
+.avatar{width:30px;height:30px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px}
+.user-chip .name{font-size:13px;font-weight:600}
+.user-chip .role{font-size:11px;color:var(--muted)}
+.btn-logout{padding:5px 10px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--muted);font-size:12px;text-decoration:none;display:flex;align-items:center;gap:4px}
+.btn-logout:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
-        /* Table */
-        .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: var(--secondary); color: white; padding: 10px 12px; text-align: left; font-weight: 600; white-space: nowrap; }
-        td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
-        tr:hover td { background: #f8f9fa; }
+/* ── Page content ── */
+.content{padding:22px 24px;flex:1}
 
-        /* Badges */
-        .badge {
-            display: inline-block; padding: 3px 10px; border-radius: 20px;
-            font-size: 11px; font-weight: 700; text-transform: uppercase;
-        }
-        .badge-sim { background: #dfe6e9; color: #2d3436; }
-        .badge-data { background: #d5f5e3; color: #1e8449; }
-        .badge-ill { background: #d6eaf8; color: #1a5276; }
-        .badge-excellent { background: #d5f5e3; color: #1e8449; }
-        .badge-good { background: #e8f5e9; color: #27ae60; }
-        .badge-poor { background: #fdebd0; color: #e67e22; }
-        .badge-bad { background: #fadbd8; color: #c0392b; }
-        .badge-active { background: #d5f5e3; color: #1e8449; }
-        .badge-jio { background: #ffeaa7; color: #d63031; }
-        .badge-airtel { background: #fd79a8; color: white; }
-        .badge-vodafone { background: #a29bfe; color: white; }
-        .badge-idea { background: #fdcb6e; color: #2d3436; }
-        .badge-bsnl { background: #00cec9; color: white; }
+/* ── Flash messages ── */
+.flash{padding:11px 16px;border-radius:8px;margin-bottom:16px;display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:500}
+.flash-success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+.flash-error{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+.flash-info{background:#d1ecf1;color:#0c5460;border:1px solid #bee5eb}
 
-        /* Forms */
-        .form-group { margin-bottom: 16px; }
-        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--secondary); }
-        input[type=text], input[type=password], input[type=date], input[type=number], input[type=email], select, textarea {
-            width: 100%; padding: 9px 12px; border: 1px solid var(--border);
-            border-radius: 6px; font-size: 14px; color: var(--text);
-            background: white; transition: border 0.2s;
-        }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
-        .btn {
-            padding: 9px 20px; border: none; border-radius: 6px;
-            font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;
-        }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-dark); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-secondary { background: var(--secondary); color: white; }
-        .btn-sm { padding: 5px 12px; font-size: 12px; }
-        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+/* ── Cards ── */
+.card{background:var(--card);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-body{padding:18px 20px}
+.card-body-p0{padding:0}
 
-        /* Alerts */
-        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
-        .alert-success { background: #d5f5e3; color: #1e8449; border: 1px solid #a9dfbf; }
-        .alert-danger { background: #fadbd8; color: #c0392b; border: 1px solid #f5b7b1; }
-        .alert-warning { background: #fef9e7; color: #9a7d0a; border: 1px solid #f9e79f; }
-        .alert-info { background: #d6eaf8; color: #1a5276; border: 1px solid #a9cce3; }
+/* ── Stat grid ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.stat-card{background:var(--card);border-radius:10px;padding:16px 18px;border:1px solid var(--border);display:flex;align-items:center;gap:13px}
+.stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.stat-val{font-size:22px;font-weight:800;color:var(--text);line-height:1}
+.stat-lbl{font-size:11.5px;color:var(--muted);margin-top:3px}
 
-        /* Notification list */
-        .notif-item {
-            padding: 10px 14px; border-left: 3px solid var(--info);
-            background: #f8f9fa; margin-bottom: 8px; border-radius: 4px;
-            font-size: 13px;
-        }
-        .notif-item.warning { border-color: var(--warning); background: #fef9e7; }
-        .notif-item.danger { border-color: var(--danger); background: #fdebd0; }
+/* ── Table ── */
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.tbl th{background:#f7fafc;padding:9px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap}
+table.tbl td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tbody tr:hover td{background:#f7fafc}
 
-        /* Pagination */
-        .pagination { display: flex; gap: 4px; align-items: center; margin-top: 16px; }
-        .pagination a, .pagination span {
-            padding: 6px 12px; border-radius: 6px; font-size: 13px; text-decoration: none;
-            border: 1px solid var(--border); color: var(--text);
-        }
-        .pagination a:hover { background: var(--primary); color: white; border-color: var(--primary); }
-        .pagination .current { background: var(--primary); color: white; border-color: var(--primary); }
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-green{background:#d4edda;color:#155724}
+.b-red{background:#f8d7da;color:#721c24}
+.b-blue{background:#d1ecf1;color:#0c5460}
+.b-purple{background:#e8daef;color:#4a235a}
+.b-orange{background:#fde3c8;color:#784212}
+.b-gray{background:#f0f3f7;color:#4a5568}
+.b-yellow{background:#fff3cd;color:#856404}
 
-        /* Filter bar */
-        .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-        .filter-bar select, .filter-bar input { width: auto; min-width: 130px; padding: 7px 10px; }
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;transition:all .18s;white-space:nowrap}
+.btn:hover{opacity:.88;transform:translateY(-1px)}
+.btn-red{background:var(--red);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{background:var(--bg)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+.btn-xs{padding:3px 8px;font-size:11px;border-radius:5px}
+.btn-danger{background:#e74c3c;color:#fff}
 
-        /* Grid layout */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+/* ── Forms ── */
+.form-row{display:grid;gap:14px}
+.form-row-2{grid-template-columns:1fr 1fr}
+.form-row-3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;font-weight:700;color:var(--dark2)}
+.form-control{padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:13.5px;outline:none;background:#fff;color:var(--text);transition:border .18s;width:100%}
+.form-control:focus{border-color:var(--red)}
+select.form-control{cursor:pointer}
 
-        /* Performance bar */
-        .perf-bar { display: flex; gap: 4px; margin-top: 8px; height: 8px; border-radius: 4px; overflow: hidden; }
-        .perf-seg { height: 100%; transition: width 0.5s; }
+/* ── Pagination ── */
+.pagination{display:flex;gap:4px;flex-wrap:wrap;margin-top:14px;padding:14px 20px;border-top:1px solid var(--border)}
+.pg-btn{padding:5px 11px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:13px;text-decoration:none;color:var(--text);transition:all .15s}
+.pg-btn:hover{border-color:var(--red);color:var(--red)}
+.pg-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar { width: 200px; }
-            .main { margin-left: 200px; }
-        }
-    </style>
+/* ── Section title ── */
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-hd h2{font-size:16px;font-weight:700}
+
+/* ── Performance colors ── */
+.perf-Excellent{color:#155724;font-weight:700}
+.perf-Good{color:#0c5460;font-weight:700}
+.perf-Poor{color:#784212;font-weight:700}
+.perf-Bad{color:#721c24;font-weight:700}
+
+/* ── Grid helpers ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.mb{margin-bottom:18px}
+
+/* ── Responsive ── */
+@media(max-width:800px){
+  .sidebar{width:54px}
+  .sb-brand .title,.sb-brand .sub,.sb-section,.sb-link span,.sb-footer{display:none}
+  .sb-link{justify-content:center;padding:12px}
+  .sb-link i{width:auto;font-size:16px}
+  .main{margin-left:54px}
+  .g2,.g3,.form-row-2,.form-row-3{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:1fr 1fr}
+}
+</style>
 </head>
 <body>
-<div class="sidebar">
-    <div class="sidebar-header">
-        <div class="logo">📡 DB Link</div>
-        <div class="sub">Dainik Bhaskar Network Portal</div>
-        <div class="user-info">
-            👤 {{ session.name }}
-            <br><span class="badge-role">{{ session.role }}</span>
-            {% if session.state %}<br>📍 {{ session.state }}{% endif %}
-        </div>
-    </div>
-    <div class="nav-section">
-        <div class="nav-label">Main</div>
-        <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
-            <span class="icon">🏠</span> Dashboard
-            {% if notif_count is defined and notif_count > 0 %}
-            <span class="nav-badge">{{ notif_count }}</span>{% endif %}
-        </a>
-        <a href="{{ url_for('links') }}" class="nav-item {% if request.endpoint=='links' %}active{% endif %}">
-            <span class="icon">🔗</span> All Links
-        </a>
-        <a href="{{ url_for('export_csv') }}" class="nav-item">
-            <span class="icon">📥</span> Export CSV
-        </a>
-    </div>
-    {% if session.role == 'admin' %}
-    <div class="nav-section">
-        <div class="nav-label">Admin</div>
-        <a href="{{ url_for('manage_users') }}" class="nav-item {% if request.endpoint=='manage_users' %}active{% endif %}">
-            <span class="icon">👥</span> Manage Engineers
-        </a>
-    </div>
-    {% endif %}
-    <div class="nav-section" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1);">
-        <a href="{{ url_for('logout') }}" class="nav-item">
-            <span class="icon">🚪</span> Logout
-        </a>
-    </div>
-</div>
+
+<nav class="sidebar">
+  <div class="sb-brand">
+    <div class="icon">📡</div>
+    <div><div class="title">DB Link Portal</div><div class="sub">Dainik Bhaskar IT</div></div>
+  </div>
+
+  <div class="sb-section">Main</div>
+  <a class="sb-link {% if request.endpoint=='dashboard' %}active{% endif %}" href="/dashboard">
+    <i class="fas fa-gauge-high"></i><span>Dashboard</span></a>
+
+  <div class="sb-section">Link Management</div>
+  <a class="sb-link {% if request.endpoint=='add_link' %}active{% endif %}" href="/links/add">
+    <i class="fas fa-plus-circle"></i><span>Naya Link Add</span></a>
+  <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='ILL/BB' %}active{% endif %}" href="/links?category=ILL%2FBB">
+    <i class="fas fa-wifi"></i><span>ILL / Broadband</span></a>
+  <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='MPLS/PRI' %}active{% endif %}" href="/links?category=MPLS%2FPRI">
+    <i class="fas fa-network-wired"></i><span>MPLS / PRI</span></a>
+  <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='P2P' %}active{% endif %}" href="/links?category=P2P">
+    <i class="fas fa-arrow-right-arrow-left"></i><span>P2P Links</span></a>
+  <a class="sb-link {% if request.endpoint=='links' and not request.args.get('category') %}active{% endif %}" href="/links">
+    <i class="fas fa-list"></i><span>Sab Links</span></a>
+  <a class="sb-link {% if request.endpoint=='sim_cards' %}active{% endif %}" href="/sim-cards">
+    <i class="fas fa-sim-card"></i><span>SIM / Data Cards</span></a>
+
+  <div class="sb-section">Analytics</div>
+  <a class="sb-link {% if request.endpoint=='notifications' %}active{% endif %}" href="/notifications">
+    <i class="fas fa-bell"></i><span>Notifications</span>
+    <span class="sb-badge" id="nb-count">!</span></a>
+  <a class="sb-link {% if request.endpoint=='reports' %}active{% endif %}" href="/reports">
+    <i class="fas fa-chart-bar"></i><span>Reports</span></a>
+
+  {% if session.get('role')=='admin' %}
+  <div class="sb-section">Admin</div>
+  <a class="sb-link {% if request.endpoint=='users' %}active{% endif %}" href="/users">
+    <i class="fas fa-users-gear"></i><span>User Management</span></a>
+  {% endif %}
+
+  <div style="flex:1"></div>
+  <div class="sb-footer">v1.0 · Pan India Portal</div>
+</nav>
+
 <div class="main">
-    <div class="topbar">
-        <h1>{% block title %}Dashboard{% endblock %}</h1>
-        <div class="topbar-right">
-            {% if session.state %}<span style="font-size:13px;color:var(--muted)">📍 {{ session.state }}</span>{% endif %}
-            <span style="font-size:13px;color:var(--muted)">{{ session.username }}</span>
+  <div class="topbar">
+    <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+    <div class="topbar-right">
+      <a class="notif-wrap" href="/notifications">
+        <i class="fas fa-bell"></i>
+        <span class="notif-dot" id="notif-dot" style="display:none"></span>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">{{ (session.get('full_name') or session.get('username','U'))[0].upper() }}</div>
+        <div>
+          <div class="name">{{ session.get('full_name') or session.get('username') }}</div>
+          <div class="role">{{ session.get('role','').title() }}{% if session.get('state') %} · {{ session.get('state') }}{% endif %}</div>
         </div>
+      </div>
+      <a class="btn-logout" href="/logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
     </div>
-    <div class="content">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in messages %}
-        <div class="alert alert-{{ cat }}">{{ msg }}</div>
-        {% endfor %}
-        {% endwith %}
-        {% block content %}{% endblock %}
+  </div>
+
+  <div class="content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">
+      <i class="fas fa-{{ 'check-circle' if cat=='success' else 'triangle-exclamation' if cat=='error' else 'info-circle' }}"></i>
+      {{ msg }}
     </div>
+    {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
 </div>
+
 </body>
 </html>

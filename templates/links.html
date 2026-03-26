@@ -1,152 +1,105 @@
 {% extends 'base.html' %}
-{% block title %}Link Management{% endblock %}
-{% block content %}
+{% block title %}Links{% endblock %}
+{% block page_title %}<i class="fas fa-list" style="color:var(--red);margin-right:8px"></i>Links Management{% endblock %}
 
+{% block content %}
 <!-- Filter Bar -->
-<div class="card" style="margin-bottom:16px">
-    <form method="GET" class="filter-bar">
-        <input type="text" name="search" value="{{ filters.search }}" placeholder="🔍 Search WAN ID, Name, SIM..." style="min-width:200px">
-        {% if session.role == 'admin' %}
-        <select name="state">
-            <option value="">All States</option>
-            {% for s in all_states %}
-            <option value="{{ s.state }}" {% if s.state == filters.state %}selected{% endif %}>{{ s.state }}</option>
-            {% endfor %}
-        </select>
-        {% endif %}
-        <select name="center">
-            <option value="">All Centers</option>
-            {% for c in all_centers %}
-            <option value="{{ c.center }}" {% if c.center == filters.center %}selected{% endif %}>{{ c.center }}</option>
-            {% endfor %}
-        </select>
-        <select name="card_type">
-            <option value="">All Types</option>
-            <option value="SIM CARD" {% if filters.card_type == 'SIM CARD' %}selected{% endif %}>SIM Card</option>
-            <option value="DATA CARD" {% if filters.card_type == 'DATA CARD' %}selected{% endif %}>Data Card</option>
-        </select>
-        <select name="provider">
-            <option value="">All Providers</option>
-            <option value="JIO" {% if filters.provider == 'JIO' %}selected{% endif %}>JIO</option>
-            <option value="AIRTEL" {% if filters.provider == 'AIRTEL' %}selected{% endif %}>AIRTEL</option>
-            <option value="VODAFONE" {% if filters.provider == 'VODAFONE' %}selected{% endif %}>VODAFONE</option>
-            <option value="IDEA" {% if filters.provider == 'IDEA' %}selected{% endif %}>IDEA</option>
-            <option value="BSNL" {% if filters.provider == 'BSNL' %}selected{% endif %}>BSNL</option>
-        </select>
-        <select name="performance">
-            <option value="">All Performance</option>
-            <option value="Excellent" {% if filters.performance == 'Excellent' %}selected{% endif %}>Excellent</option>
-            <option value="Good" {% if filters.performance == 'Good' %}selected{% endif %}>Good</option>
-            <option value="Poor" {% if filters.performance == 'Poor' %}selected{% endif %}>Poor</option>
-            <option value="Bad" {% if filters.performance == 'Bad' %}selected{% endif %}>Bad</option>
-        </select>
-        <button type="submit" class="btn btn-primary">Filter</button>
-        <a href="{{ url_for('links') }}" class="btn btn-outline">Clear</a>
-        <a href="{{ url_for('export_csv') }}" class="btn btn-success btn-sm">📥 Export</a>
+<div class="card mb">
+  <div class="card-body" style="padding:14px 20px">
+    <form method="GET" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+      <input class="form-control" style="max-width:260px" type="text" name="search" value="{{ search }}" placeholder="🔍 ISP, Location, Circuit ID, IP...">
+      {% if session.get('role')=='admin' %}
+      <select class="form-control" style="max-width:130px" name="state">
+        <option value="">All States</option>
+        {% for s in all_states %}
+        <option value="{{ s['state'] }}" {{ 'selected' if state_f==s['state'] }}>{{ s['state'] }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <button class="btn btn-red" type="submit"><i class="fas fa-search"></i> Search</button>
+      <a href="/links{{ '?category='+category if category else '' }}" class="btn btn-outline"><i class="fas fa-xmark"></i> Clear</a>
+      <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <a href="/links" class="btn btn-sm {{ 'btn-red' if not category else 'btn-outline' }}">All</a>
+        <a href="/links?category=ILL%2FBB" class="btn btn-sm {{ 'btn-red' if category=='ILL/BB' else 'btn-outline' }}">ILL/BB</a>
+        <a href="/links?category=MPLS%2FPRI" class="btn btn-sm {{ 'btn-red' if category=='MPLS/PRI' else 'btn-outline' }}">MPLS/PRI</a>
+        <a href="/links?category=P2P" class="btn btn-sm {{ 'btn-red' if category=='P2P' else 'btn-outline' }}">P2P</a>
+        <a href="/links/add" class="btn btn-sm btn-green"><i class="fas fa-plus"></i> Add New</a>
+      </div>
     </form>
+  </div>
 </div>
 
 <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="card-title" style="margin:0">
-            🔗 Links 
-            <span style="font-weight:400;font-size:13px;color:var(--muted)">({{ total_count }} records)</span>
-        </div>
-        <div style="font-size:13px;color:var(--muted)">Page {{ page }} of {{ total_pages }}</div>
-    </div>
-
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>WAN ID</th>
-                    <th>Center</th>
-                    <th>State</th>
-                    <th>Employee</th>
-                    <th>SIM Number</th>
-                    <th>Provider</th>
-                    <th>Type</th>
-                    <th>ARC ₹</th>
-                    <th>Performance</th>
-                    <th>Recharge Due</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for link in links %}
-                <tr>
-                    <td><strong style="color:var(--primary)">{{ link.wan_id }}</strong></td>
-                    <td>{{ link.center }}</td>
-                    <td><span style="font-size:12px;color:var(--muted)">{{ link.state }}</span></td>
-                    <td>
-                        <div style="font-size:13px">{{ link.employee_name }}</div>
-                        <div style="font-size:11px;color:var(--muted)">{{ link.designation }}</div>
-                    </td>
-                    <td style="font-family:monospace;font-size:13px">{{ link.sim_number }}</td>
-                    <td>
-                        {% set prov = link.service_provider|lower %}
-                        <span class="badge badge-{{ prov }}">{{ link.service_provider }}</span>
-                    </td>
-                    <td>
-                        {% if 'SIM' in link.card_type %}
-                        <span class="badge badge-sim">SIM</span>
-                        {% elif 'DATA' in link.card_type %}
-                        <span class="badge badge-data">Data</span>
-                        {% else %}
-                        <span class="badge badge-ill">{{ link.card_type }}</span>
-                        {% endif %}
-                    </td>
-                    <td style="text-align:right">
-                        {% if link.arc %}₹{{ link.arc|int }}{% else %}-{% endif %}
-                    </td>
-                    <td>
-                        {% set perf = link.performance or 'Good' %}
-                        {% if perf == 'Excellent' %}
-                        <span class="badge badge-excellent">⭐ Excellent</span>
-                        {% elif perf == 'Good' %}
-                        <span class="badge badge-good">✅ Good</span>
-                        {% elif perf == 'Poor' %}
-                        <span class="badge badge-poor">⚠️ Poor</span>
-                        {% else %}
-                        <span class="badge badge-bad">❌ Bad</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if link.recharge_due_date %}
-                        <span style="font-size:12px;color:{% if link.recharge_due_date < '2025-07-01' %}var(--danger){% else %}var(--success){% endif %}">
-                            {{ link.recharge_due_date }}
-                        </span>
-                        {% else %}
-                        <span style="color:var(--muted);font-size:12px">Not set</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('link_detail', lid=link.id) }}" class="btn btn-secondary btn-sm">View</a>
-                        <a href="{{ url_for('edit_link', lid=link.id) }}" class="btn btn-warning btn-sm">Edit</a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted)">No links found</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    <div class="pagination">
-        {% if page > 1 %}
-        <a href="?page={{ page-1 }}&search={{ filters.search }}&state={{ filters.state }}&center={{ filters.center }}&card_type={{ filters.card_type }}&provider={{ filters.provider }}&performance={{ filters.performance }}">← Prev</a>
-        {% endif %}
-        {% for p in range([1, page-2]|max, [total_pages+1, page+3]|min) %}
-        {% if p == page %}
-        <span class="current">{{ p }}</span>
-        {% else %}
-        <a href="?page={{ p }}&search={{ filters.search }}&state={{ filters.state }}&center={{ filters.center }}&card_type={{ filters.card_type }}&provider={{ filters.provider }}&performance={{ filters.performance }}">{{ p }}</a>
-        {% endif %}
-        {% endfor %}
-        {% if page < total_pages %}
-        <a href="?page={{ page+1 }}&search={{ filters.search }}&state={{ filters.state }}&center={{ filters.center }}&card_type={{ filters.card_type }}&provider={{ filters.provider }}&performance={{ filters.performance }}">Next →</a>
-        {% endif %}
-    </div>
+  <div class="card-header">
+    <span>{{ total }} links mila{% if state_f %} — State: <b>{{ state_f }}</b>{% endif %}{% if category %} — Category: <b>{{ category }}</b>{% endif %}</span>
+    <span style="font-size:12px;color:var(--muted)">Page {{ page }} of {{ total_pages }}</span>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>State</th><th>Location</th><th>ISP</th><th>Type</th>
+          <th>Speed</th><th>Annual Cost</th><th>Status</th>
+          <th>Performance</th><th>Renewal Date</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for lnk in links %}
+      {% set cat = lnk['category'] or '' %}
+      <tr>
+        <td><span class="badge b-gray">{{ lnk['state'] }}</span></td>
+        <td>
+          <div style="font-weight:600">{{ lnk['link_location'] or lnk['engineer_location'] or '—' }}</div>
+          {% if lnk['office_type'] %}<div style="font-size:11px;color:var(--muted)">{{ lnk['office_type'] }}</div>{% endif %}
+        </td>
+        <td>
+          <div style="font-weight:600">{{ lnk['isp_name'] }}</div>
+          {% if lnk['circuit_id'] %}<div style="font-size:11px;color:var(--muted);font-family:monospace">{{ lnk['circuit_id'] }}</div>{% endif %}
+        </td>
+        <td>
+          <span class="badge {{ 'b-blue' if 'ILL' in cat or 'BB' in cat else 'b-purple' if 'MPLS' in cat or 'PRI' in cat else 'b-orange' if 'P2P' in cat else 'b-gray' }}">
+            {{ lnk['link_type'] or cat }}
+          </span>
+        </td>
+        <td><b>{{ lnk['speed_mbps'] }}</b></td>
+        <td>₹{{ "{:,.0f}".format(lnk['yearly_cost'] or 0) }}</td>
+        <td>
+          {% if lnk['link_status'] == 'Active' %}
+          <span class="badge b-green"><i class="fas fa-circle" style="font-size:7px"></i> Active</span>
+          {% else %}
+          <span class="badge b-red">{{ lnk['link_status'] }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% set p = lnk['performance'] or 'Good' %}
+          <span class="badge {{ 'b-green' if p=='Excellent' else 'b-blue' if p=='Good' else 'b-yellow' if p=='Poor' else 'b-red' }}">
+            {{ '⭐' if p=='Excellent' else '👍' if p=='Good' else '⚠️' if p=='Poor' else '❌' }} {{ p }}
+          </span>
+        </td>
+        <td style="font-size:12px;{% if lnk['next_renewal_date'] %}color:var(--orange);font-weight:600{% else %}color:var(--muted){% endif %}">
+          {{ lnk['next_renewal_date'] or '—' }}
+        </td>
+        <td><a href="/links/{{ lnk['id'] }}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i> View</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">Koi link nahi mila</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}<a href="?page={{ page-1 }}&category={{ category }}&search={{ search }}&state={{ state_f }}" class="pg-btn"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    {% for p in range(1, total_pages+1) %}
+      {% if p == page or (p >= page-2 and p <= page+2) or p == 1 or p == total_pages %}
+        <a href="?page={{ p }}&category={{ category }}&search={{ search }}&state={{ state_f }}" class="pg-btn {{ 'active' if p==page }}">{{ p }}</a>
+      {% elif p == page-3 or p == page+3 %}
+        <span class="pg-btn" style="border:none">…</span>
+      {% endif %}
+    {% endfor %}
+    {% if page < total_pages %}<a href="?page={{ page+1 }}&category={{ category }}&search={{ search }}&state={{ state_f }}" class="pg-btn"><i class="fas fa-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

@@ -1,126 +1,116 @@
-# 📡 DB Link Portal — Dainik Bhaskar Network Management
-
-Pan India broadband, SIM card, ILL link management portal.
+# 📡 DB Link Manager Portal
+## Dainik Bhaskar — Pan India IT Network Management
 
 ---
 
-## 🚀 Local Setup (Windows/Linux/Mac)
+## 🚀 Features
 
-### Step 1: Install Python (if not installed)
-Download from: https://python.org/downloads
+- **ILL / Broadband Links** — 421+ records manage karein
+- **MPLS / PRI Links** — MPLS aur PRI connections track karein  
+- **P2P Links** — Point to Point links manage karein
+- **SIM / Data Cards** — 1326+ SIM card records
+- **State-wise Access** — Engineer sirf apne state ke links dekhe
+- **Performance Tracking** — Excellent / Good / Poor / Bad set karein
+- **Renewal Notifications** — 60 din pehle alert milega
+- **Reports & Charts** — ISP-wise, state-wise, category-wise analytics
+- **New Link Add** — Naya link directly portal se add karein
+- **User Management** — Admin users banaye aur manage kare
 
-### Step 2: Install dependencies
-```
-pip install flask pandas
-```
+---
 
-### Step 3: Run the app
-```
-python app.py
-```
+## 🔑 Default Login Credentials
 
-### Step 4: Open browser
-```
-http://localhost:5000
-```
-
-**Default Admin Login:**
-- Username: `admin`
-- Password: `admin123`
+| Role | Username | Password |
+|------|----------|----------|
+| 👑 Admin | `admin` | `admin123` |
+| 🔧 Engineer GJ | `eng_gj` | `eng123` |
+| 🔧 Engineer MH | `eng_mh` | `eng123` |
+| 🔧 Engineer RJ | `eng_rj` | `eng123` |
+| 🔧 Engineer HR | `eng_hr` | `eng123` |
+| 🔧 Engineer NCR | `eng_ncr` | `eng123` |
+| 🔧 Engineer MPCG | `eng_mpcg` | `eng123` |
+| 🔧 Engineer BR&JH | `eng_br_jh` | `eng123` |
+| 🔧 Engineer CPH | `eng_cph` | `eng123` |
 
 ---
 
 ## 🌐 Free Hosting — Render.com (Recommended)
 
-### Step 1: GitHub pe upload karo
-1. GitHub.com pe free account banao
+### Step 1: GitHub pe upload karein
+1. GitHub account banao: https://github.com
 2. New repository banao: `db-link-portal`
-3. Saari files upload karo (sab files ek saath)
+3. Ye saari files upload karo (portal.db bhi)
 
-### Step 2: Render pe deploy karo
-1. https://render.com pe free account banao
-2. "New Web Service" click karo
-3. GitHub repo connect karo
+### Step 2: Render.com pe deploy karein
+1. https://render.com pe jaao — free account banao
+2. "New +" → "Web Service" click karo
+3. Apna GitHub repo select karo
 4. Settings:
-   - **Build Command:** `pip install flask pandas`
-   - **Start Command:** `python app.py`
-   - **Environment:** Python 3
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `gunicorn app:app`
+   - **Plan:** Free
 5. "Create Web Service" click karo
-6. 2-3 minute mein live URL milega!
+6. 2-3 minute mein live ho jayega!
 
-### Step 3: Live URL
+### Step 3: URL milega
+`https://db-link-portal.onrender.com` jaisa kuch URL milega — ye share karo engineers ke saath!
+
+---
+
+## 💻 Local Machine pe chalane ke liye
+
+```bash
+# Python install hona chahiye (3.8+)
+pip install -r requirements.txt
+
+# Database initialize karo (pehli baar)
+python init_db.py
+
+# Portal start karo
+python app.py
+
+# Browser mein jaao
+# http://localhost:5000
 ```
-https://db-link-portal.onrender.com
-```
-(Ya jo bhi naam aap choose karo)
-
----
-
-## 🌐 Alternative: PythonAnywhere (Easiest)
-
-1. https://pythonanywhere.com pe free account banao
-2. "Files" tab mein saari files upload karo
-3. "Web" tab mein new web app banao
-4. Flask select karo, `app.py` point karo
-5. Done!
-
----
-
-## 👥 Engineer Accounts Kaise Banayein
-
-1. Admin se login karo
-2. "Manage Engineers" menu mein jao
-3. Engineer ka naam, username, password, aur **State** assign karo
-4. Engineer sirf apni state ke links dekh aur edit kar payega
-
----
-
-## 📋 Features
-
-| Feature | Description |
-|---------|-------------|
-| 🔐 Role-Based Access | Admin = sab, Engineer = sirf apna state |
-| 🔗 1327+ Links | CSV se import, filters ke saath browse |
-| 📊 Performance Rating | Excellent / Good / Poor / Bad |
-| 💰 Billing Tracking | Billing date, amount, recharge due track karo |
-| 🔔 Auto Alerts | Recharge 7 din mein due ho to auto notification |
-| 📥 CSV Export | Apne state ke links download karo |
-| 📋 Activity Log | Har edit ka record |
-| 📢 Admin Notifications | State-wise ya sab engineers ko message bhejo |
 
 ---
 
 ## 📁 File Structure
 
 ```
-linkportal/
-├── app.py              ← Main application
-├── data.csv            ← Your link data (auto-imported)
-├── linkportal.db       ← SQLite database (auto-created)
-├── requirements.txt    ← Python packages
-├── render.yaml         ← Render deployment config
-├── Procfile            ← Heroku/Railway config
+db_portal/
+├── app.py              # Main Flask application
+├── init_db.py          # Database setup + data import
+├── portal.db           # SQLite database (auto-created)
+├── requirements.txt    # Python dependencies
+├── Procfile            # Deployment config
+├── render.yaml         # Render.com config
 └── templates/
-    ├── base.html       ← Common layout
-    ├── login.html      ← Login page
-    ├── dashboard.html  ← Main dashboard
-    ├── links.html      ← Links list with filters
-    ├── link_detail.html← Link detail view
-    ├── edit_link.html  ← Edit performance/billing
-    └── users.html      ← Engineer management
+    ├── base.html       # Common layout
+    ├── login.html      # Login page
+    ├── dashboard.html  # Main dashboard
+    ├── links.html      # Links list
+    ├── link_detail.html# Link detail + edit
+    ├── add_link.html   # New link form
+    ├── sim_cards.html  # SIM cards
+    ├── notifications.html
+    ├── reports.html    # Analytics
+    └── users.html      # User management
 ```
 
 ---
 
-## 🔧 CSV Data Update Karna
+## 🔧 Engineer Permissions
 
-Agar naya CSV data add karna ho:
-1. `linkportal.db` file delete karo
-2. Naya CSV `data.csv` naam se rakho
-3. `python app.py` run karo — auto import ho jayega
+| Feature | Admin | Engineer |
+|---------|-------|---------|
+| Sab states ke links dekhna | ✅ | ❌ (sirf apna state) |
+| Link edit karna | ✅ | ❌ |
+| Performance set karna | ✅ | ✅ |
+| Naya link add karna | ✅ | ✅ |
+| User manage karna | ✅ | ❌ |
+| Renewal check karna | ✅ | ❌ |
 
 ---
 
-## 📞 Support
-
-Dainik Bhaskar IT Team
+*Built for Dainik Bhaskar IT Team — Pan India Network Management*
