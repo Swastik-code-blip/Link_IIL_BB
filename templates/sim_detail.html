@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}SIM Detail{% endblock %}
+{% block page_title %}<i class="fas fa-sim-card" style="color:var(--green);margin-right:8px"></i>SIM / Data Card Detail{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:14px;display:flex;gap:8px">
+  <a href="/sim-cards" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+  <span class="badge {{ 'b-green' if sim['emp_status']=='Active' else 'b-red' }}" style="padding:6px 14px;font-size:13px">
+    {{ sim['emp_status'] }}
+  </span>
+  <span class="badge b-gray" style="padding:6px 14px;font-size:13px">{{ sim['card_type'] }}</span>
+</div>
+
+<div class="g2 mb">
+  <!-- Info View -->
+  <div class="card">
+    <div class="card-header"><i class="fas fa-id-card" style="color:var(--blue);margin-right:7px"></i>SIM Card Information</div>
+    <div class="card-body-p0">
+      <table class="tbl">
+        {% set info = [
+          ('WAN ID', sim['wan_id']),
+          ('Center', sim['center']),
+          ('Location', sim['location']),
+          ('Division', sim['division']),
+          ('Office Type', sim['office_type']),
+          ('Employee ID', sim['employee_id']),
+          ('Employee Name', sim['employee_name']),
+          ('Designation', sim['designation']),
+          ('Department', sim['department']),
+          ('SIM Number', sim['sim_number']),
+          ('Service Provider', sim['service_provider']),
+          ('Card Type', sim['card_type']),
+          ('Status', sim['emp_status']),
+          ('Annual Cost (₹)', '₹' ~ "{:,.0f}".format(sim['arc'] or 0)),
+          ('Added On', sim['created_at']),
+        ] %}
+        {% for label, val in info %}
+        {% if val %}
+        <tr>
+          <td style="color:var(--muted);font-size:12px;font-weight:600;width:42%;padding:9px 16px;border-bottom:1px solid var(--border)">{{ label }}</td>
+          <td style="font-weight:600;font-size:13px;padding:9px 16px;border-bottom:1px solid var(--border)">{{ val }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit Form (Admin only) -->
+  <div class="card">
+    <div class="card-header"><i class="fas fa-pen" style="color:var(--red);margin-right:7px"></i>
+      {{ 'Edit SIM Card (Admin)' if session.get('role')=='admin' else 'Edit - Admin Permission Required' }}
+    </div>
+    <div class="card-body">
+      {% if session.get('role') == 'admin' %}
+      <form method="POST">
+        <div class="form-row form-row-2" style="margin-bottom:10px">
+          <div class="form-group">
+            <label class="form-label">WAN ID</label>
+            <input type="text" name="wan_id" class="form-control" value="{{ sim['wan_id'] or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Center</label>
+            <input type="text" name="center" class="form-control" value="{{ sim['center'] or '' }}">
+          </div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:10px">
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <input type="text" name="location" class="form-control" value="{{ sim['location'] or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Division</label>
+            <input type="text" name="division" class="form-control" value="{{ sim['division'] or '' }}">
+          </div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:10px">
+          <div class="form-group">
+            <label class="form-label">Employee ID</label>
+            <input type="text" name="employee_id" class="form-control" value="{{ sim['employee_id'] or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Employee Name</label>
+            <input type="text" name="employee_name" class="form-control" value="{{ sim['employee_name'] or '' }}">
+          </div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:10px">
+          <div class="form-group">
+            <label class="form-label">Designation</label>
+            <input type="text" name="designation" class="form-control" value="{{ sim['designation'] or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            <input type="text" name="department" class="form-control" value="{{ sim['department'] or '' }}">
+          </div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:10px">
+          <div class="form-group">
+            <label class="form-label">SIM Number</label>
+            <input type="text" name="sim_number" class="form-control" value="{{ sim['sim_number'] or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Service Provider</label>
+            <select name="service_provider" class="form-control">
+              {% for p in ['JIO','Airtel','BSNL','Vi','Vodafone','IDEA'] %}
+              <option {{ 'selected' if sim['service_provider']==p }}>{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row form-row-3" style="margin-bottom:10px">
+          <div class="form-group">
+            <label class="form-label">Card Type</label>
+            <select name="card_type" class="form-control">
+              <option {{ 'selected' if sim['card_type']=='SIM CARD' }}>SIM CARD</option>
+              <option {{ 'selected' if sim['card_type']=='DATA CARD' }}>DATA CARD</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select name="emp_status" class="form-control">
+              <option {{ 'selected' if sim['emp_status']=='Active' }}>Active</option>
+              <option {{ 'selected' if sim['emp_status']=='Inactive' }}>Inactive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Annual Cost (₹)</label>
+            <input type="number" name="arc" class="form-control" value="{{ sim['arc'] or 0 }}">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">Office Type</label>
+          <select name="office_type" class="form-control">
+            {% for o in ['Corporate','Office','Press','Editorial','Field'] %}
+            <option {{ 'selected' if sim['office_type']==o }}>{{ o }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-red" style="width:100%"><i class="fas fa-floppy-disk"></i> Save Changes</button>
+      </form>
+      {% else %}
+      <div style="padding:30px;text-align:center;color:var(--muted)">
+        <i class="fas fa-lock" style="font-size:32px;display:block;margin-bottom:10px;color:var(--red)"></i>
+        SIM card edit karne ke liye Admin access chahiye
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

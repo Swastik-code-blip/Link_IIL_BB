@@ -3,45 +3,43 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Login — DB Link Portal</title>
+<title>Login — DB Link Management Portal</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',sans-serif;min-height:100vh;background:linear-gradient(135deg,#c0392b 0%,#1e2a35 100%);display:flex;align-items:center;justify-content:center;padding:20px}
-.card{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.3)}
-.logo{text-align:center;margin-bottom:28px}
-.logo .icon{font-size:52px;display:block;margin-bottom:8px}
-.logo .name{font-size:22px;font-weight:800;color:#c0392b}
+.card{background:#fff;border-radius:16px;padding:38px 36px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.logo{text-align:center;margin-bottom:24px}
+.logo img{height:54px;object-fit:contain;margin-bottom:10px}
+.logo .name{font-size:21px;font-weight:800;color:#c0392b;letter-spacing:.3px}
 .logo .sub{font-size:12px;color:#718096;margin-top:3px}
+hr{border:none;border-top:1px solid #e2e8f0;margin:18px 0}
 .flash{padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:8px;background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
 .form-group{margin-bottom:14px}
 label{display:block;font-size:12px;font-weight:700;color:#2d3748;margin-bottom:5px}
 .inp-wrap{position:relative}
 .inp-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#a0aec0;font-size:13px}
-input{width:100%;padding:11px 12px 11px 36px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;transition:border .2s}
-input:focus{border-color:#c0392b}
-.btn-submit{width:100%;padding:12px;background:linear-gradient(135deg,#c0392b,#96281b);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;letter-spacing:.4px;transition:opacity .2s}
+input{width:100%;padding:11px 12px 11px 36px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;transition:border .2s;background:#f7fafc}
+input:focus{border-color:#c0392b;background:#fff}
+.btn-submit{width:100%;padding:12px;background:linear-gradient(135deg,#c0392b,#96281b);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;letter-spacing:.4px;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-submit:hover{opacity:.9}
-.creds{background:#f7fafc;border-radius:10px;padding:14px 16px;margin-top:20px}
-.creds-title{font-size:12px;font-weight:700;color:#2d3748;margin-bottom:8px}
-.cred-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #e2e8f0;font-size:12px;color:#4a5568}
-.cred-row:last-child{border-bottom:none}
-.cred-row code{background:#e2e8f0;padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12px}
+.footer-note{text-align:center;margin-top:16px;font-size:11px;color:#a0aec0}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">
-    <span class="icon">📡</span>
-    <div class="name">DB Link Manager Portal</div>
-    <div class="sub">Dainik Bhaskar — Pan India IT Network Management</div>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Dainik_Bhaskar_Logo.svg/320px-Dainik_Bhaskar_Logo.svg.png"
+         alt="Dainik Bhaskar"
+         onerror="this.style.display='none'">
+    <div class="name">Link Management Portal</div>
+    <div class="sub">Pan India IT Network Management System</div>
   </div>
-
+  <hr>
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
   <div class="flash"><i class="fas fa-exclamation-circle"></i>{{ msg }}</div>
   {% endfor %}{% endwith %}
-
   <form method="POST" autocomplete="off">
     <div class="form-group">
       <label>Username</label>
@@ -57,17 +55,11 @@ input:focus{border-color:#c0392b}
         <input type="password" name="password" placeholder="password daalein" required>
       </div>
     </div>
-    <button type="submit" class="btn-submit"><i class="fas fa-right-to-bracket"></i> Login</button>
+    <button type="submit" class="btn-submit">
+      <i class="fas fa-right-to-bracket"></i> Login
+    </button>
   </form>
-
-  <div class="creds">
-    <div class="creds-title">🔑 Default Credentials</div>
-    <div class="cred-row"><span>👑 Admin</span><span><code>admin</code> / <code>admin123</code></span></div>
-    <div class="cred-row"><span>🔧 Engineer GJ</span><span><code>eng_gj</code> / <code>eng123</code></span></div>
-    <div class="cred-row"><span>🔧 Engineer MH</span><span><code>eng_mh</code> / <code>eng123</code></span></div>
-    <div class="cred-row"><span>🔧 Engineer RJ</span><span><code>eng_rj</code> / <code>eng123</code></span></div>
-    <div style="font-size:11px;color:#a0aec0;margin-top:6px">Baaki: eng_hr · eng_ncr · eng_mpcg · eng_br_jh · eng_cph</div>
-  </div>
+  <div class="footer-note">IT Department — Dainik Bhaskar Group &nbsp;|&nbsp; v2.0</div>
 </div>
 </body>
 </html>

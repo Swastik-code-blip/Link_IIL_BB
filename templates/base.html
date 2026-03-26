@@ -156,8 +156,10 @@ select.form-control{cursor:pointer}
   <div class="sb-section">Link Management</div>
   <a class="sb-link {% if request.endpoint=='add_link' %}active{% endif %}" href="/links/add">
     <i class="fas fa-plus-circle"></i><span>Naya Link Add</span></a>
-  <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='ILL/BB' %}active{% endif %}" href="/links?category=ILL%2FBB">
-    <i class="fas fa-wifi"></i><span>ILL / Broadband</span></a>
+  <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='ILL' %}active{% endif %}" href="/links?category=ILL">
+    <i class="fas fa-server"></i><span>ILL (Leased Line)</span></a>
+  <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='BB' %}active{% endif %}" href="/links?category=BB">
+    <i class="fas fa-wifi"></i><span>Broadband (BB)</span></a>
   <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='MPLS/PRI' %}active{% endif %}" href="/links?category=MPLS%2FPRI">
     <i class="fas fa-network-wired"></i><span>MPLS / PRI</span></a>
   <a class="sb-link {% if request.endpoint=='links' and request.args.get('category')=='P2P' %}active{% endif %}" href="/links?category=P2P">

@@ -19,7 +19,7 @@
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
-        <tr><th>WAN ID</th><th>Center</th><th>Employee</th><th>Designation</th><th>SIM Number</th><th>Provider</th><th>Type</th><th>Dept</th><th>Status</th><th>Annual (₹)</th></tr>
+        <tr><th>WAN ID</th><th>Center</th><th>Employee</th><th>Designation</th><th>SIM Number</th><th>Provider</th><th>Type</th><th>Dept</th><th>Status</th><th>Annual (₹)</th><th>Action</th></tr>
       </thead>
       <tbody>
       {% for s in sims %}
@@ -34,6 +34,7 @@
         <td style="font-size:12px">{{ s['department'] or '—' }}</td>
         <td><span class="badge {{ 'b-green' if s['emp_status']=='Active' else 'b-red' }}">{{ s['emp_status'] }}</span></td>
         <td>₹{{ "{:,.0f}".format(s['arc'] or 0) }}</td>
+        <td><a href="/sim-cards/{{ s['id'] }}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i> View</a></td>
       </tr>
       {% else %}
       <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">Koi record nahi mila</td></tr>

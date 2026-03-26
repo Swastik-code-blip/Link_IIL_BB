@@ -6,6 +6,11 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'dainikbhaskar_portal_2025_secure'
+
+# Custom Jinja2 filter
+@app.template_filter('enumerate')
+def jinja_enumerate(iterable):
+    return list(enumerate(iterable))
 DB_PATH = os.path.join(os.path.dirname(__file__), 'portal.db')
 
 def get_db():
@@ -130,7 +135,11 @@ def links():
     conds, params = [], []
     if state_f:
         conds.append('state=?'); params.append(state_f)
-    if category:
+    if category == 'ILL':
+        conds.append("(category='ILL/BB' AND link_type IN ('ILL','Leased Line'))")
+    elif category == 'BB':
+        conds.append("(category='ILL/BB' AND link_type IN ('BB','Broadband','Airtel'))")
+    elif category:
         conds.append('category=?'); params.append(category)
     if search:
         conds.append('(isp_name LIKE ? OR link_location LIKE ? OR circuit_id LIKE ? OR link_ip LIKE ? OR engineer_location LIKE ?)')
@@ -430,3 +439,36 @@ def change_password():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
+
+# ── SIM CARD DETAIL + EDIT ────────────────────────────────────────────────────
+@app.route('/sim-cards/<int:sid>', methods=['GET', 'POST'])
+@login_required
+def sim_detail(sid):
+    db  = get_db()
+    sim = db.execute('SELECT * FROM sim_cards WHERE id=?', (sid,)).fetchone()
+    if not sim:
+        db.close()
+        flash('SIM card nahi mila', 'error')
+        return redirect(url_for('sim_cards'))
+
+    if request.method == 'POST' and session['role'] == 'admin':
+        db.execute("""UPDATE sim_cards SET wan_id=?,center=?,location=?,division=?,office_type=?,
+            employee_id=?,employee_name=?,sim_number=?,service_provider=?,card_type=?,
+            emp_status=?,designation=?,department=?,arc=?,
+            updated_at=datetime('now','localtime') WHERE id=?""", (
+            request.form.get('wan_id',''), request.form.get('center',''),
+            request.form.get('location',''), request.form.get('division',''),
+            request.form.get('office_type',''), request.form.get('employee_id',''),
+            request.form.get('employee_name',''), request.form.get('sim_number',''),
+            request.form.get('service_provider',''), request.form.get('card_type',''),
+            request.form.get('emp_status','Active'), request.form.get('designation',''),
+            request.form.get('department',''),
+            float(request.form.get('arc','0') or '0'), sid))
+        db.commit()
+        db.close()
+        flash('SIM card update ho gaya!', 'success')
+        return redirect(url_for('sim_detail', sid=sid))
+
+    db.close()
+    return render_template('sim_detail.html', sim=sim)

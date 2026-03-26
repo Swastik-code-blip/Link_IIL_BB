@@ -3,94 +3,91 @@
 {% block page_title %}<i class="fas fa-chart-bar" style="color:var(--purple);margin-right:8px"></i>Reports & Analytics{% endblock %}
 
 {% block content %}
-<!-- Summary Cards Row -->
-<div class="g3 mb">
-  <div class="card">
-    <div class="card-header"><i class="fas fa-layer-group" style="color:var(--red);margin-right:7px"></i>Category-wise</div>
-    <div class="card-body-p0">
-      <table class="tbl">
-        <thead><tr><th>Category</th><th>Links</th><th>Annual Cost</th></tr></thead>
-        <tbody>
-        {% for r in by_cat %}
-        <tr>
-          <td><span class="badge {{ 'b-blue' if 'ILL' in r.category else 'b-purple' if 'MPLS' in r.category else 'b-orange' }}">{{ r.category }}</span></td>
-          <td><b>{{ r.cnt }}</b></td>
-          <td>₹{{ "{:,.0f}".format(r.cost) }}</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="card-header"><i class="fas fa-gauge" style="color:var(--green);margin-right:7px"></i>Performance</div>
-    <div class="card-body-p0">
-      {% set tot = by_perf|sum(attribute='cnt') %}
-      <table class="tbl">
-        <thead><tr><th>Performance</th><th>Count</th><th>%</th></tr></thead>
-        <tbody>
-        {% for r in by_perf %}
-        <tr>
-          <td><span class="badge {{ 'b-green' if r.performance=='Excellent' else 'b-blue' if r.performance=='Good' else 'b-yellow' if r.performance=='Poor' else 'b-red' }}">{{ r.performance }}</span></td>
-          <td><b>{{ r.cnt }}</b></td>
-          <td>{{ "%.1f"|format(r.cnt*100/tot if tot else 0) }}%</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+<!-- KPI Summary Row -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px">
+  {% for r in by_cat %}
+  <div class="stat-card">
+    <div class="stat-icon" style="background:{{ '#d1ecf1' if 'ILL' in r.category else '#e8daef' if 'MPLS' in r.category else '#fde3c8' }}">
+      <i class="fas fa-{{ 'wifi' if 'ILL' in r.category else 'network-wired' if 'MPLS' in r.category else 'arrow-right-arrow-left' }}"
+         style="color:{{ '#0c5460' if 'ILL' in r.category else '#4a235a' if 'MPLS' in r.category else '#784212' }}"></i>
+    </div>
+    <div>
+      <div class="stat-val">{{ r.cnt }}</div>
+      <div class="stat-lbl">{{ r.category }} Links</div>
+      <div style="font-size:11px;color:var(--red);font-weight:600">₹{{ "{:,.0f}".format(r.cost) }}/yr</div>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-header"><i class="fas fa-signal" style="color:var(--blue);margin-right:7px"></i>Link Status</div>
-    <div class="card-body-p0">
-      <table class="tbl">
-        <thead><tr><th>Status</th><th>Count</th></tr></thead>
-        <tbody>
-        {% for r in by_status %}
-        <tr>
-          <td><span class="badge {{ 'b-green' if r.link_status=='Active' else 'b-red' }}">{{ r.link_status }}</span></td>
-          <td><b>{{ r.cnt }}</b></td>
-        </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+  {% endfor %}
 </div>
 
-<!-- ISP Chart -->
-<div class="card mb">
-  <div class="card-header"><i class="fas fa-building" style="color:var(--purple);margin-right:7px"></i>ISP-wise Analysis</div>
-  <div style="padding:16px 20px;height:280px"><canvas id="ispChart"></canvas></div>
-</div>
-
-<!-- Media Type + State wise -->
+<!-- Row 1: ISP Bar + Performance Donut -->
 <div class="g2 mb">
   <div class="card">
-    <div class="card-header"><i class="fas fa-ethernet" style="color:var(--orange);margin-right:7px"></i>Media Type Distribution</div>
-    <div style="padding:16px;height:220px"><canvas id="mediaChart"></canvas></div>
+    <div class="card-header"><i class="fas fa-building" style="color:var(--purple);margin-right:7px"></i>ISP-wise Link Count & Cost</div>
+    <div style="padding:16px;height:300px"><canvas id="ispChart"></canvas></div>
   </div>
   <div class="card">
-    <div class="card-header"><i class="fas fa-map" style="color:var(--red);margin-right:7px"></i>State-wise Cost</div>
-    <div style="padding:16px;height:220px"><canvas id="stateChart"></canvas></div>
+    <div class="card-header"><i class="fas fa-gauge" style="color:var(--green);margin-right:7px"></i>Performance Distribution</div>
+    <div style="padding:16px;height:300px;display:flex;align-items:center;justify-content:center"><canvas id="perfChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Row 2: State Cost Horizontal Bar + Media Pie -->
+<div class="g2 mb">
+  <div class="card">
+    <div class="card-header"><i class="fas fa-map-location-dot" style="color:var(--red);margin-right:7px"></i>State-wise Annual Cost (₹)</div>
+    <div style="padding:16px;height:280px"><canvas id="stateChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><i class="fas fa-ethernet" style="color:var(--orange);margin-right:7px"></i>Media Type Split</div>
+    <div style="padding:16px;height:280px;display:flex;align-items:center;justify-content:center"><canvas id="mediaChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Row 3: Link Status Doughnut + Category Cost Bar -->
+<div class="g2 mb">
+  <div class="card">
+    <div class="card-header"><i class="fas fa-signal" style="color:var(--blue);margin-right:7px"></i>Link Status Overview</div>
+    <div style="padding:16px;height:240px;display:flex;align-items:center;justify-content:center"><canvas id="statusChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><i class="fas fa-layer-group" style="color:var(--red);margin-right:7px"></i>Category-wise Cost Comparison</div>
+    <div style="padding:16px;height:240px"><canvas id="catCostChart"></canvas></div>
   </div>
 </div>
 
 <!-- ISP Detail Table -->
 <div class="card">
-  <div class="card-header"><i class="fas fa-table" style="color:var(--blue);margin-right:7px"></i>ISP Detail Table</div>
+  <div class="card-header">
+    <span><i class="fas fa-table" style="color:var(--blue);margin-right:7px"></i>ISP Detail Report</span>
+    <span style="font-size:12px;color:var(--muted)">Top 15 ISPs by link count</span>
+  </div>
   <div class="tbl-wrap">
     <table class="tbl">
-      <thead><tr><th>ISP Name</th><th>Total Links</th><th>Annual Cost</th><th>Avg Cost/Link</th></tr></thead>
+      <thead>
+        <tr>
+          <th>#</th><th>ISP Name</th><th>Total Links</th><th>Annual Cost</th>
+          <th>Avg Cost/Link</th><th>Share</th>
+        </tr>
+      </thead>
       <tbody>
-      {% for r in by_isp %}
+      {% set total_links = by_isp|sum(attribute='cnt') %}
+      {% for i, r in by_isp|enumerate %}
       <tr>
+        <td style="color:var(--muted);font-weight:700">{{ i+1 }}</td>
         <td><b>{{ r.isp_name }}</b></td>
-        <td>{{ r.cnt }}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="background:var(--red);height:6px;border-radius:3px;width:{{ (r.cnt / total_links * 100)|int }}px;max-width:80px"></div>
+            <b>{{ r.cnt }}</b>
+          </div>
+        </td>
         <td>₹{{ "{:,.0f}".format(r.cost) }}</td>
-        <td>₹{{ "{:,.0f}".format(r.cost/r.cnt if r.cnt else 0) }}</td>
+        <td>₹{{ "{:,.0f}".format(r.cost / r.cnt if r.cnt else 0) }}</td>
+        <td>
+          <span class="badge b-gray">{{ "%.1f"|format(r.cnt * 100 / total_links if total_links else 0) }}%</span>
+        </td>
       </tr>
       {% endfor %}
       </tbody>
@@ -101,31 +98,132 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 const ispData   = {{ by_isp|tojson }};
-const mediaData = {{ by_media|tojson }};
+const perfData  = {{ by_perf|tojson }};
 const stateData = {{ by_state|tojson }};
+const mediaData = {{ by_media|tojson }};
+const statusData= {{ by_status|tojson }};
+const catData   = {{ by_cat|tojson }};
 
-// ISP bar
+const RED='#c0392b', BLUE='#2980b9', GREEN='#27ae60', ORANGE='#e67e22',
+      PURPLE='#8e44ad', TEAL='#16a085', DARK='#2c3e50';
+
+// 1. ISP Bar + Line combo
 new Chart(document.getElementById('ispChart'),{
   type:'bar',
-  data:{labels:ispData.map(r=>r.isp_name),datasets:[
-    {label:'Links',data:ispData.map(r=>r.cnt),backgroundColor:'#c0392b',borderRadius:4,yAxisID:'y'},
-    {label:'Annual Cost (₹)',data:ispData.map(r=>r.cost||0),type:'line',borderColor:'#2980b9',backgroundColor:'rgba(41,128,185,.1)',yAxisID:'y1',fill:true,tension:.3}
-  ]},
-  options:{scales:{y:{beginAtZero:true,title:{display:true,text:'Links Count'}},y1:{beginAtZero:true,position:'right',title:{display:true,text:'Cost ₹'},grid:{drawOnChartArea:false}}},maintainAspectRatio:false}
+  data:{
+    labels: ispData.map(r=>r.isp_name),
+    datasets:[
+      {label:'Links',data:ispData.map(r=>r.cnt),backgroundColor:RED+'cc',borderRadius:5,yAxisID:'y'},
+      {label:'Annual Cost (₹)',data:ispData.map(r=>r.cost||0),type:'line',
+       borderColor:BLUE,backgroundColor:BLUE+'22',yAxisID:'y1',fill:true,tension:.35,pointRadius:4,pointBackgroundColor:BLUE}
+    ]
+  },
+  options:{
+    plugins:{legend:{position:'top',labels:{font:{size:11}}}},
+    scales:{
+      y:{beginAtZero:true,title:{display:true,text:'Links Count'},ticks:{stepSize:1}},
+      y1:{beginAtZero:true,position:'right',title:{display:true,text:'Cost ₹'},grid:{drawOnChartArea:false},
+          ticks:{callback:v=>'₹'+v.toLocaleString('en-IN')}}
+    },
+    maintainAspectRatio:false
+  }
 });
 
-// Media pie
-new Chart(document.getElementById('mediaChart'),{
-  type:'pie',
-  data:{labels:mediaData.map(r=>r.media_type),datasets:[{data:mediaData.map(r=>r.cnt),backgroundColor:['#c0392b','#2980b9','#27ae60','#e67e22','#8e44ad'],borderWidth:2,borderColor:'#fff'}]},
-  options:{plugins:{legend:{position:'right'}},maintainAspectRatio:false}
+// 2. Performance Donut with center text
+const perfColors = {Excellent:GREEN, Good:BLUE, Poor:ORANGE, Bad:RED};
+const perfChart = new Chart(document.getElementById('perfChart'),{
+  type:'doughnut',
+  data:{
+    labels: perfData.map(r=>r.performance),
+    datasets:[{
+      data: perfData.map(r=>r.cnt),
+      backgroundColor: perfData.map(r=>perfColors[r.performance]||'#95a5a6'),
+      borderWidth:3, borderColor:'#fff', hoverBorderWidth:2
+    }]
+  },
+  options:{
+    plugins:{
+      legend:{position:'right',labels:{font:{size:12},padding:12}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} links`}}
+    },
+    cutout:'65%', maintainAspectRatio:false
+  }
 });
 
-// State bar
+// 3. State horizontal bar
 new Chart(document.getElementById('stateChart'),{
   type:'bar',
-  data:{labels:stateData.map(r=>r.state),datasets:[{label:'Annual Cost ₹',data:stateData.map(r=>r.cost||0),backgroundColor:'#27ae60',borderRadius:4}]},
-  options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}},maintainAspectRatio:false}
+  data:{
+    labels: stateData.map(r=>r.state),
+    datasets:[{
+      label:'Annual Cost ₹',
+      data: stateData.map(r=>r.cost||0),
+      backgroundColor: [RED,BLUE,GREEN,ORANGE,PURPLE,TEAL,DARK,'#e74c3c','#3498db'].slice(0,stateData.length),
+      borderRadius:5
+    }]
+  },
+  options:{
+    indexAxis:'y',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'₹'+ctx.raw.toLocaleString('en-IN')}}},
+    scales:{x:{beginAtZero:true,ticks:{callback:v=>'₹'+(v/100000).toFixed(1)+'L'}}},
+    maintainAspectRatio:false
+  }
+});
+
+// 4. Media Type Pie
+new Chart(document.getElementById('mediaChart'),{
+  type:'pie',
+  data:{
+    labels: mediaData.map(r=>r.media_type),
+    datasets:[{
+      data: mediaData.map(r=>r.cnt),
+      backgroundColor:[RED,BLUE,GREEN,ORANGE,PURPLE,TEAL],
+      borderWidth:3,borderColor:'#fff'
+    }]
+  },
+  options:{
+    plugins:{legend:{position:'right',labels:{font:{size:12},padding:14}}},
+    maintainAspectRatio:false
+  }
+});
+
+// 5. Link Status Doughnut
+const statusColors={'Active':GREEN,'Inactive':RED,'Suspended':ORANGE,'Terminated':'#7f8c8d'};
+new Chart(document.getElementById('statusChart'),{
+  type:'doughnut',
+  data:{
+    labels: statusData.map(r=>r.link_status),
+    datasets:[{
+      data: statusData.map(r=>r.cnt),
+      backgroundColor: statusData.map(r=>statusColors[r.link_status]||'#bdc3c7'),
+      borderWidth:3,borderColor:'#fff'
+    }]
+  },
+  options:{
+    plugins:{legend:{position:'right',labels:{font:{size:12}}}},
+    cutout:'60%', maintainAspectRatio:false
+  }
+});
+
+// 6. Category Cost Bar
+new Chart(document.getElementById('catCostChart'),{
+  type:'bar',
+  data:{
+    labels: catData.map(r=>r.category),
+    datasets:[
+      {label:'Links',data:catData.map(r=>r.cnt),backgroundColor:PURPLE+'bb',borderRadius:5,yAxisID:'y'},
+      {label:'Cost ₹',data:catData.map(r=>r.cost||0),backgroundColor:ORANGE+'bb',borderRadius:5,yAxisID:'y1'}
+    ]
+  },
+  options:{
+    plugins:{legend:{position:'top'}},
+    scales:{
+      y:{beginAtZero:true,title:{display:true,text:'Links'}},
+      y1:{beginAtZero:true,position:'right',title:{display:true,text:'Cost ₹'},grid:{drawOnChartArea:false},
+          ticks:{callback:v=>'₹'+(v/100000).toFixed(1)+'L'}}
+    },
+    maintainAspectRatio:false
+  }
 });
 </script>
 {% endblock %}
